@@ -4,6 +4,24 @@ structure GameState where
   position : Nat
   goal : Nat
 
+declare_syntax_cat game_cell
+declare_syntax_cat game_cell_sequence
+
+syntax "┤" game_cell_sequence "├ ": term
+
+syntax "★" : game_cell
+syntax "░" : game_cell
+syntax "@" : game_cell
+
+syntax game_cell* : game_cell_sequence
+
+macro_rules
+| `(┤├) => `((⟨1, 3⟩ : GameState))
+| `(┤$cell:game_cell $cells:game_cell*├) => `((⟨2, 3⟩ : GameState))
+--| `(┤░░├) => `((⟨1, 3⟩ : GameState))
+
+#check ┤░░░░├
+
 def allowed_move : GameState → GameState → Prop
 | ⟨n, g⟩, ⟨m, h⟩ => (m + 1 = n ∧ g = h) ∨ (m = n + 1 ∧ g = h)
 

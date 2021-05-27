@@ -17,6 +17,26 @@ def can_win (g : GameState) : Prop :=
   (is_win (m 0)) ∧
   (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
 
-theorem step_left {g : GameState} (h : can_win g) : can_win ⟨g.position + 1, g.goal⟩ :=
-  ⟨h.1 + 1,
-   by admit⟩
+theorem done {n : Nat} : can_win ⟨n,n⟩ := sorry
+
+theorem step_left {p g : Nat} (h : can_win ⟨p, g⟩) : can_win ⟨p + 1, g⟩ :=
+  let n := h.1 + 1
+  ⟨n,
+   λ i => sorry,
+   by admit,
+   by admit,
+   λ i h => by admit⟩
+
+theorem step_right {p g : Nat} (h : can_win ⟨p + 1, g⟩) : can_win ⟨p, g⟩ := sorry
+
+example : can_win {position := 11, goal := 7} :=
+by apply step_left
+   apply step_left
+   apply step_left
+   apply step_left
+   exact done
+
+example : can_win {position := 9, goal := 11} :=
+by apply step_right
+   apply step_right
+   exact done

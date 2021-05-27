@@ -3,6 +3,24 @@ import Lean
 structure GameState where
   position : Nat
   goal : Nat
+--  size : Nat
+
+inductive CellContents where
+  | empty  : CellContents
+  | player : CellContents
+  | goal   : CellContents
+
+--
+def game_state_from_cells : List CellContents → GameState
+ | [] => ⟨0,0⟩
+ | CellContents.empty::cells => let ⟨p,g⟩ := game_state_from_cells cells
+                                ⟨p+1, g+1⟩
+ | CellContents.player::cells => let ⟨p,g⟩ := game_state_from_cells cells
+                                ⟨0, g+1⟩
+ | CellContents.goal::cells =>  let ⟨p,g⟩ := game_state_from_cells cells
+                                ⟨p+1, 0⟩
+
+#reduce game_state_from_cells [CellContents.goal, CellContents.player, CellContents.empty, CellContents.empty]
 
 declare_syntax_cat game_cell
 declare_syntax_cat game_cell_sequence
@@ -20,7 +38,8 @@ macro_rules
 | `(┤$cell:game_cell $cells:game_cell*├) => `((⟨2, 3⟩ : GameState))
 --| `(┤░░├) => `((⟨1, 3⟩ : GameState))
 
-#check ┤░░░░├
+#check ┤░░
+        ░░├
 
 def allowed_move : GameState → GameState → Prop
 | ⟨n, g⟩, ⟨m, h⟩ => (m + 1 = n ∧ g = h) ∨ (m = n + 1 ∧ g = h)

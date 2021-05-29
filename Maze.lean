@@ -138,7 +138,7 @@ declare_syntax_cat game_bottom_row
 
 syntax "═" : horizontal_border
 
-syntax "╔" horizontal_border* "╗\n" : game_top_row
+syntax "\n╔" horizontal_border* "╗\n" : game_top_row
 
 syntax "╚" horizontal_border* "╝\n" : game_bottom_row
 
@@ -191,7 +191,11 @@ macro_rules
 | `(╔ $tb:horizontal_border* ╗
     $rows:game_row*
     ╚ $bb:horizontal_border* ╝) =>
-      `( game_state_from_cells ⟨0,0⟩ ╣{$rows:game_row*}╠ )
+      let rsize := Lean.Syntax.mkNumLit (toString rows.size) -- there's gotta be a better way to do this
+      let csize := Lean.Syntax.mkNumLit (toString tb.size) -- there's gotta be a better way to do this
+      `( game_state_from_cells ⟨$csize,$rsize⟩ ╣{$rows:game_row*}╠ )
+
+#check Array.size
 
 
 #reduce ╔═══════╗
@@ -203,3 +207,22 @@ macro_rules
         ║▓░░░░▓▓║
         ║▓░▓▓▓▓▓║
         ╚═══════╝
+
+
+@[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
+  let e ← Lean.PrettyPrinter.Delaborator.getExpr
+  guard $ e.getAppNumArgs == 3
+  `(╔═════╗
+    ║▓▓▓▓▓║
+    ╚═════╝)
+
+#reduce ╔═══════╗
+        ║▓▓▓▓▓▓▓║
+        ║▓░▓@▓░▓║
+        ║▓░▓░░░▓║
+        ║▓░░▓░▓▓║
+        ║▓▓░▓░▓▓║
+        ║▓░░░░▓▓║
+        ║▓░▓▓▓▓▓║
+        ╚═══════╝
+

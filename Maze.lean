@@ -219,9 +219,16 @@ macro_rules
   let positionArgs := Lean.Expr.getAppArgs position'
   let numCols := (Lean.Expr.natLit? positionArgs[0]).get!
   let numRows := (Lean.Expr.natLit? positionArgs[1]).get!
-  `(╔═════╗
-    ║▓▓▓▓▓║
-    ╚═════╝)
+  let topBarCell ← `(horizontal_border| ═)
+  let topBar := Array.mkArray numCols topBarCell
+  let emptyCell ← `(game_cell| ░)
+  let emptyRow := Array.mkArray numCols emptyCell
+  let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)
+  let allRows := Array.mkArray numRows emptyRowStx
+
+  `(╔$topBar:horizontal_border*╗
+    $allRows:game_row*
+    ╚$topBar:horizontal_border*╝)
 
 #reduce ╔═══════╗
         ║▓▓▓▓▓▓▓║

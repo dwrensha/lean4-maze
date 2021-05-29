@@ -212,6 +212,13 @@ macro_rules
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   guard $ e.getAppNumArgs == 3
+  let pexpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
+  let position':Lean.Expr ← (Lean.Meta.whnf pexpr)
+  let positionArgs := Lean.Expr.getAppArgs position'
+  let numCols := (Lean.Expr.natLit? positionArgs[0]).get!
+  let numRows := (Lean.Expr.natLit? positionArgs[1]).get!
   `(╔═════╗
     ║▓▓▓▓▓║
     ╚═════╝)

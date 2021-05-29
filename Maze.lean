@@ -46,6 +46,9 @@ structure Coords where
   x : Nat
   y : Nat
 
+instance : ToString Coords where
+  toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
+
 structure GameState where
   size : Coords
   position : Coords
@@ -112,13 +115,33 @@ macro_rules
         ║▓░▓▓▓▓▓║
         ╚═══════╝
 
-def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (Nat × Nat)
+def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
 | e => do
   let e':Lean.Expr ← (Lean.Meta.whnf e)
   let sizeArgs := Lean.Expr.getAppArgs e'
+  let f := Lean.Expr.getAppFn e'
   let numCols := (Lean.Expr.natLit? sizeArgs[0]).get!
   let numRows := (Lean.Expr.natLit? sizeArgs[1]).get!
-  (numCols, numRows)
+  Coords.mk numCols numRows
+
+def extractWallList : Nat -> Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (List Coords)
+| 0, _ => [] -- recursion deptch reached.
+| (depth+1), exp => do
+  let exp':Lean.Expr ← (Lean.Meta.whnf exp)
+  let f := Lean.Expr.getAppFn exp'
+  if f.constName!.toString == "List.cons"
+  then let consArgs := Lean.Expr.getAppArgs exp'
+       let rest ← extractWallList depth consArgs[2]
+       let ⟨wallCol, wallRow⟩ ← extractXY consArgs[1]
+       (Coords.mk wallCol wallRow) :: rest
+  else [] -- "List.nil"
+
+def update2dArray {α : Type} : Array (Array α) → Coords → α → Array (Array α)
+| a, ⟨x,y⟩, v =>
+   Array.set! a y $ Array.set! (Array.get! a y) x v
+
+def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM Lean.Syntax
+| a => do `(game_row| ║ $a:game_cell* ║)
 
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
@@ -126,13 +149,18 @@ def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (Nat × Nat)
   let sizeExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  let (numCols, numRows) ← extractXY sizeExpr
+  let ⟨numCols, numRows⟩ ← extractXY sizeExpr
 
   let positionExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  let (playerCol, playerRow) ← extractXY positionExpr
+  let playerCoords ← extractXY positionExpr
 
-  dbg_trace (playerCol, playerRow)
+  let wallsExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
+  let walls':Lean.Expr ← (Lean.Meta.whnf wallsExpr)
+  dbg_trace walls'
+
+  let walls'' ← extractWallList 1000000 walls'
+  dbg_trace walls''
 
   let topBarCell ← `(horizontal_border| ═)
   let topBar := Array.mkArray numCols topBarCell
@@ -142,8 +170,14 @@ def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (Nat × Nat)
   let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)
   let allRows := Array.mkArray numRows emptyRowStx
 
+  let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
+  let a1 := update2dArray a0 playerCoords playerCell
+
+  let aa ← Array.mapM delabGameRow a1
+
+
   `(╔$topBar:horizontal_border*╗
-    $allRows:game_row*
+    $aa:game_row*
     ╚$topBar:horizontal_border*╝)
 
 #reduce ╔═══════╗
@@ -155,4 +189,11 @@ def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (Nat × Nat)
         ║▓░░░░▓▓║
         ║▓░▓▓▓▓▓║
         ╚═══════╝
+
+#reduce ╔══════╗
+        ║▓▓▓▓▓▓║
+        ║▓▓░▓░▓║
+        ║▓@░░▓▓║
+        ║▓▓▓▓▓▓║
+        ╚══════╝
 

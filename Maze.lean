@@ -45,6 +45,7 @@ syntax "╣" game_cell* "╠" : term
 structure Coords where
   x : Nat
   y : Nat
+deriving BEq
 
 instance : ToString Coords where
   toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
@@ -151,7 +152,8 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
 
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
-  guard $ e.getAppNumArgs == 3
+  let e' ← (Lean.Meta.whnf e)
+  guard $ e'.getAppNumArgs == 3
   let sizeExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
@@ -163,10 +165,8 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
 
   let wallsExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
   let walls':Lean.Expr ← (Lean.Meta.whnf wallsExpr)
-  dbg_trace walls'
 
   let walls'' ← extractWallList 1000000 walls'
-  dbg_trace walls''
 
   let topBarCell ← `(horizontal_border| ═)
   let topBar := Array.mkArray numCols topBarCell
@@ -186,20 +186,57 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
     $aa:game_row*
     ╚$topBar:horizontal_border*╝)
 
-#reduce ╔═══════╗
-        ║▓▓▓▓▓▓▓║
-        ║▓░▓@▓░▓║
-        ║▓░▓░░░▓║
-        ║▓░░▓░▓▓║
-        ║▓▓░▓░▓▓║
-        ║▓░░░░▓▓║
-        ║▓░▓▓▓▓▓║
-        ╚═══════╝
+def maze1 := ╔════════╗
+             ║▓▓▓▓▓▓▓▓║
+             ║▓░▓@▓░▓▓║
+             ║▓░▓░░░▓▓║
+             ║▓░░▓░▓▓▓║
+             ║▓▓░▓░▓░░║
+             ║▓░░░░▓░▓║
+             ║▓░▓▓▓▓░▓║
+             ║▓░░░░░░▓║
+             ║▓▓▓▓▓▓▓▓║
+             ╚════════╝
 
-#reduce ╔══════╗
-        ║▓▓▓▓▓▓║
-        ║▓▓░▓░▓║
-        ║▓@░░▓▓║
-        ║▓▓▓▓▓▓║
-        ╚══════╝
+def maze2 := ╔══════╗
+             ║▓▓▓▓▓▓║
+             ║▓░░░░▓║
+             ║▓░@░░▓║
+             ║▓░░░░▓║
+             ║▓▓▓▓░▓║
+             ╚══════╝
 
+#reduce maze2
+
+def allowed_move : GameState → GameState → Prop
+| ⟨s, ⟨x,y⟩, w⟩, ⟨s', ⟨x',y'⟩, w'⟩ =>
+      w = w' ∧                -- walls are static
+      s = s' ∧                -- size is static
+      (w.contains ⟨x',y'⟩ = false) ∧ -- not allowed to enter wall
+      ((x = x' ∧ (y = y' + 1 ∨ y + 1 = y')) ∨
+       (y = y' ∧ (x = x' + 1 ∨ x + 1 = x')))
+
+def is_win : GameState → Prop
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
+
+def can_win (g : GameState) : Prop :=
+  ∃ (n : Nat),
+  ∃ (m : Nat → GameState),
+  (g = m n) ∧
+  (is_win (m 0)) ∧
+  (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
+
+
+theorem step_left {s p: Coords} {w: List Coords} (h : can_win ⟨s,p,w⟩) : can_win ⟨s,⟨p.x +1, p.y⟩,w⟩ :=
+  let n := h.1 + 1
+  ⟨n,
+   λ i => sorry,
+   by admit,
+   by admit,
+   λ i h => by admit⟩
+
+#reduce maze1
+
+example : can_win maze2 := by admit
+--  apply step_left
+--  admit

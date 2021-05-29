@@ -26,17 +26,14 @@ def game_state_from_cells : List CellContents → GameState
 #reduce game_state_from_cells [CellContents.goal, CellContents.player, CellContents.empty, CellContents.empty]
 
 declare_syntax_cat game_cell'
-declare_syntax_cat game_cell_sequence'
 
-syntax "┤" game_cell_sequence' "├ ": term
+syntax "┤" game_cell'* "├ ": term
 
-syntax "┤{" game_cell_sequence' "}├": term
+syntax "┤{" game_cell'* "}├": term
 
 syntax "★" : game_cell'
 syntax "░" : game_cell'
 syntax "@" : game_cell'
-
-syntax game_cell'* : game_cell_sequence'
 
 macro_rules
 | `(┤{}├) => `(([] : List CellContents))
@@ -61,7 +58,6 @@ macro_rules
   let pexpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  dbg_trace pexpr
   let position' ← (Lean.Meta.whnf pexpr)
   let position : Nat := (Lean.Expr.natLit? position').get!
   let goal : Nat := g.isNatLit?.get!
@@ -69,8 +65,6 @@ macro_rules
   let a0 := Array.mkArray size e
   let a1 := Array.set! a0 position player
   let a2 := Array.set! a1 goal goalc
-  dbg_trace g
-  dbg_trace s
   `(┤$a2:game_cell'*├)
 
 #reduce ┤░░@░★░░░░░░├
@@ -156,7 +150,12 @@ syntax "║" game_cell* "║\n" : game_row
 
 syntax game_top_row game_row* game_bottom_row : term
 
+syntax "╣{" game_row* "}╠" : term
+syntax "╣" game_cell* "╠" : term
 
+-- x is column number
+-- y is row number
+-- upper left is ⟨0,0⟩
 structure Coords where
   x : Nat
   y : Nat
@@ -172,11 +171,27 @@ inductive CellContents where
   | wall  : CellContents
   | player : CellContents
 
+--
+def game_state_from_cells : Coords → List (List CellContents) → GameState
+| size, [] => ⟨size, ⟨0,0⟩, []⟩
+| size, _ => ⟨size, ⟨0,0⟩, []⟩ -- TODO
+
+
+macro_rules
+| `(╣╠) => `(([] : List CellContents))
+| `(╣░ $cells:game_cell*╠) => `(CellContents.empty :: ╣$cells:game_cell*╠)
+| `(╣▓ $cells:game_cell*╠) => `(CellContents.wall :: ╣$cells:game_cell*╠)
+| `(╣@ $cells:game_cell*╠) => `(CellContents.player :: ╣$cells:game_cell*╠)
+
+macro_rules
+| `(╣{}╠) => `(([] : List (List CellContents)))
+| `(╣{ ║$cells:game_cell*║  $rows:game_row*}╠) => `(╣$cells:game_cell*╠ :: ╣{$rows:game_row*}╠)
+
 macro_rules
 | `(╔ $tb:horizontal_border* ╗
     $rows:game_row*
     ╚ $bb:horizontal_border* ╝) =>
-      `( 0 )
+      `( game_state_from_cells ⟨0,0⟩ ╣{$rows:game_row*}╠ )
 
 
 #reduce ╔═══════╗

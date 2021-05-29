@@ -1,4 +1,5 @@
 import Lean
+--import Lean.PrettyPrinter.Delaborator.Basic
 
 structure GameState where
   position : Nat
@@ -48,12 +49,19 @@ macro_rules
 
 #check GameState.mk
 
-@[appUnexpander GameState] def unexpandGameState : Lean.PrettyPrinter.Unexpander
---  | `({ position := $p, goal := $g}) => `(┤░@░★░░├)
-  | `(GameState $p $g) => `(┤░@░░░░★░░├)
-  | _              => throw ()
+@[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
+  let e ← Lean.PrettyPrinter.Delaborator.getExpr
+  guard $ e.getAppNumArgs == 2
+  let p ← Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
+  -- how to get an integer from p?
+  let g ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
+  let y ← `(game_cell| ░)
+  let x ← Array.mkArray g.isNatLit?.get! y
+  dbg_trace p
+  `(┤$x:game_cell*├) -- TODO
 
-#reduce ┤░@░★░░├
+#reduce ┤░░@░★░░├
 
 def allowed_move : GameState → GameState → Prop
 | ⟨n, g⟩, ⟨m, h⟩ => (m + 1 = n ∧ g = h) ∨ (m = n + 1 ∧ g = h)
@@ -91,3 +99,4 @@ example : can_win {position := 9, goal := 11} :=
 by apply step_right
    apply step_right
    exact done
+

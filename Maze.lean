@@ -1,6 +1,8 @@
 import Lean
 --import Lean.PrettyPrinter.Delaborator.Basic
 
+namespace OneDimension
+
 structure GameState where
   position : Nat
   goal : Nat
@@ -23,39 +25,39 @@ def game_state_from_cells : List CellContents → GameState
 
 #reduce game_state_from_cells [CellContents.goal, CellContents.player, CellContents.empty, CellContents.empty]
 
-declare_syntax_cat game_cell
-declare_syntax_cat game_cell_sequence
+declare_syntax_cat game_cell'
+declare_syntax_cat game_cell_sequence'
 
-syntax "┤" game_cell_sequence "├ ": term
+syntax "┤" game_cell_sequence' "├ ": term
 
-syntax "┤{" game_cell_sequence "}├": term
+syntax "┤{" game_cell_sequence' "}├": term
 
-syntax "★" : game_cell
-syntax "░" : game_cell
-syntax "@" : game_cell
+syntax "★" : game_cell'
+syntax "░" : game_cell'
+syntax "@" : game_cell'
 
-syntax game_cell* : game_cell_sequence
+syntax game_cell'* : game_cell_sequence'
 
 macro_rules
 | `(┤{}├) => `(([] : List CellContents))
-| `(┤{░ $cells:game_cell* }├) => `( CellContents.empty :: ┤{$cells:game_cell*}├)
-| `(┤{★ $cells:game_cell* }├) => `( CellContents.goal :: ┤{$cells:game_cell*}├)
-| `(┤{@ $cells:game_cell* }├) => `( CellContents.player :: ┤{$cells:game_cell*}├)
+| `(┤{░ $cells:game_cell'* }├) => `( CellContents.empty :: ┤{$cells:game_cell'*}├)
+| `(┤{★ $cells:game_cell'* }├) => `( CellContents.goal :: ┤{$cells:game_cell'*}├)
+| `(┤{@ $cells:game_cell'* }├) => `( CellContents.player :: ┤{$cells:game_cell'*}├)
 
 macro_rules
-| `(┤$cells:game_cell*├) => `(game_state_from_cells  ┤{$cells:game_cell*}├ )
+| `(┤$cells:game_cell'*├) => `(game_state_from_cells  ┤{$cells:game_cell'*}├ )
 
 #reduce ┤░@░★░░├
 
-@[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
+@[delab app.OneDimension.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   guard $ e.getAppNumArgs == 3
   let g ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
   let s ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
-  let e ← `(game_cell| ░)
-  let player ← `(game_cell| @)
-  let goalc ← `(game_cell| ★)
+  let e ← `(game_cell'| ░)
+  let player ← `(game_cell'| @)
+  let goalc ← `(game_cell'| ★)
   let pexpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
@@ -69,7 +71,7 @@ macro_rules
   let a2 := Array.set! a1 goal goalc
   dbg_trace g
   dbg_trace s
-  `(┤$a2:game_cell*├)
+  `(┤$a2:game_cell'*├)
 
 #reduce ┤░░@░★░░░░░░├
 
@@ -113,4 +115,54 @@ by apply step_left
    apply step_right
    apply step_right
    exact done
+
+end OneDimension
+
+-----------------------------------------------------
+
+/-
+a maze looks like:
+
+╔═══════╗
+║▓▓▓▓▓▓▓║
+║▓░▓░▓░▓║
+║▓░▓░░░▓║
+║▓░░▓░▓▓║
+║▓▓░▓░▓▓║
+║▓░░░░▓▓║
+║▓░▓▓▓▓▓║
+╚═══════╝
+
+-/
+
+declare_syntax_cat game_cell
+declare_syntax_cat game_cell_sequence
+declare_syntax_cat game_row
+
+
+syntax "┤" game_cell_sequence' "├ ": term
+
+syntax "┤{" game_cell_sequence' "}├": term
+
+syntax "░" : game_cell
+syntax "▓" : game_cell
+syntax "@" : game_cell
+
+syntax game_cell'* : game_c
+
+
+structure Coords where
+  x : Nat
+  y : Nat
+
+structure GameState where
+  position : Coords
+  goal : Nat
+  size : Nat
+
+inductive CellContents where
+  | empty  : CellContents
+  | wall  : CellContents
+  | player : CellContents
+  | goal   : CellContents
 

@@ -125,7 +125,7 @@ a maze looks like:
 
 ╔═══════╗
 ║▓▓▓▓▓▓▓║
-║▓░▓░▓░▓║
+║▓░▓@▓░▓║
 ║▓░▓░░░▓║
 ║▓░░▓░▓▓║
 ║▓▓░▓░▓▓║
@@ -138,17 +138,23 @@ a maze looks like:
 declare_syntax_cat game_cell
 declare_syntax_cat game_cell_sequence
 declare_syntax_cat game_row
+declare_syntax_cat horizontal_border
+declare_syntax_cat game_top_row
+declare_syntax_cat game_bottom_row
 
+syntax "═" : horizontal_border
 
-syntax "┤" game_cell_sequence' "├ ": term
+syntax "╔" horizontal_border* "╗\n" : game_top_row
 
-syntax "┤{" game_cell_sequence' "}├": term
+syntax "╚" horizontal_border* "╝\n" : game_bottom_row
 
 syntax "░" : game_cell
 syntax "▓" : game_cell
 syntax "@" : game_cell
 
-syntax game_cell'* : game_c
+syntax "║" game_cell* "║\n" : game_row
+
+syntax game_top_row game_row* game_bottom_row : term
 
 
 structure Coords where
@@ -156,13 +162,29 @@ structure Coords where
   y : Nat
 
 structure GameState where
+  size : Coords
   position : Coords
-  goal : Nat
-  size : Nat
+  walls: List Coords
+
 
 inductive CellContents where
   | empty  : CellContents
   | wall  : CellContents
   | player : CellContents
-  | goal   : CellContents
 
+macro_rules
+| `(╔ $tb:horizontal_border* ╗
+    $rows:game_row*
+    ╚ $bb:horizontal_border* ╝) =>
+      `( 0 )
+
+
+#reduce ╔═══════╗
+        ║▓▓▓▓▓▓▓║
+        ║▓░▓@▓░▓║
+        ║▓░▓░░░▓║
+        ║▓░░▓░▓▓║
+        ║▓▓░▓░▓▓║
+        ║▓░░░░▓▓║
+        ║▓░▓▓▓▓▓║
+        ╚═══════╝

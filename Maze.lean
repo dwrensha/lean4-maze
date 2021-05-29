@@ -140,6 +140,12 @@ def update2dArray {α : Type} : Array (Array α) → Coords → α → Array (Ar
 | a, ⟨x,y⟩, v =>
    Array.set! a y $ Array.set! (Array.get! a y) x v
 
+def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α → Array (Array α)
+| a, [], v => a
+| a, c::cs, v =>
+     let a' := update2dArrayMulti a cs v
+     update2dArray a' c v
+
 def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM Lean.Syntax
 | a => do `(game_row| ║ $a:game_cell* ║)
 
@@ -166,15 +172,15 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
   let topBar := Array.mkArray numCols topBarCell
   let playerCell ← `(game_cell| @)
   let emptyCell ← `(game_cell| ░)
+  let wallCell ← `(game_cell| ▓)
   let emptyRow := Array.mkArray numCols emptyCell
   let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)
   let allRows := Array.mkArray numRows emptyRowStx
 
   let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
   let a1 := update2dArray a0 playerCoords playerCell
-
-  let aa ← Array.mapM delabGameRow a1
-
+  let a2 := update2dArrayMulti a1 walls'' wallCell
+  let aa ← Array.mapM delabGameRow a2
 
   `(╔$topBar:horizontal_border*╗
     $aa:game_row*

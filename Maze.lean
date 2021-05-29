@@ -4,7 +4,7 @@ import Lean
 structure GameState where
   position : Nat
   goal : Nat
---  size : Nat
+  size : Nat
 
 inductive CellContents where
   | empty  : CellContents
@@ -13,13 +13,13 @@ inductive CellContents where
 
 --
 def game_state_from_cells : List CellContents → GameState
- | [] => ⟨0,0⟩
- | CellContents.empty::cells => let ⟨p,g⟩ := game_state_from_cells cells
-                                ⟨p+1, g+1⟩
- | CellContents.player::cells => let ⟨p,g⟩ := game_state_from_cells cells
-                                ⟨0, g+1⟩
- | CellContents.goal::cells =>  let ⟨p,g⟩ := game_state_from_cells cells
-                                ⟨p+1, 0⟩
+ | [] => ⟨0,0,0⟩
+ | CellContents.empty::cells => let ⟨p,g,s⟩ := game_state_from_cells cells
+                                ⟨p+1, g+1,s+1⟩
+ | CellContents.player::cells => let ⟨p,g,s⟩ := game_state_from_cells cells
+                                ⟨0, g+1, s+1⟩
+ | CellContents.goal::cells =>  let ⟨p,g, s⟩ := game_state_from_cells cells
+                                ⟨p+1, 0, s+1⟩
 
 #reduce game_state_from_cells [CellContents.goal, CellContents.player, CellContents.empty, CellContents.empty]
 
@@ -47,27 +47,38 @@ macro_rules
 
 #reduce ┤░@░★░░├
 
-#check GameState.mk
-
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
-  guard $ e.getAppNumArgs == 2
+  guard $ e.getAppNumArgs == 3
   let p ← Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
-  -- how to get an integer from p?
-  let g ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
-  let y ← `(game_cell| ░)
-  let x ← Array.mkArray g.isNatLit?.get! y
+  let g ← Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
+  let s ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
+  let e ← `(game_cell| ░)
+  let player ← `(game_cell| @)
+  let goalc ← `(game_cell| ★)
+  let position : Nat := p.isNatLit?.get!
+  let goal : Nat := g.isNatLit?.get!
+  let size : Nat := s.isNatLit?.get!
+  let a0 := Array.mkArray size e
+  let a1 := Array.set! a0 position player
+  let a2 := Array.set! a1 goal goalc
+  dbg_trace position
   dbg_trace p
-  `(┤$x:game_cell*├) -- TODO
+  dbg_trace g
+  dbg_trace s
+  `(┤$a2:game_cell*├)
 
-#reduce ┤░░@░★░░├
+
+#reduce ┤░░@░★░░░░░░├
 
 def allowed_move : GameState → GameState → Prop
-| ⟨n, g⟩, ⟨m, h⟩ => (m + 1 = n ∧ g = h) ∨ (m = n + 1 ∧ g = h)
+| ⟨n, g, s⟩, ⟨m, h, t⟩ => (m + 1 = n ∧ g = h) ∨ (m = n + 1 ∧ g = h)
 
 def is_win : GameState → Prop
-| ⟨n, m⟩ => n = m
+| ⟨n, m, _⟩ => n = m
 
 def can_win (g : GameState) : Prop :=
   ∃ (n : Nat),
@@ -76,9 +87,9 @@ def can_win (g : GameState) : Prop :=
   (is_win (m 0)) ∧
   (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
 
-theorem done {n : Nat} : can_win ⟨n,n⟩ := sorry
+theorem done {n s: Nat} : can_win ⟨n,n,s⟩ := sorry
 
-theorem step_left {p g : Nat} (h : can_win ⟨p, g⟩) : can_win ⟨p + 1, g⟩ :=
+theorem step_left {p g s: Nat} (h : can_win ⟨p, g, s⟩) : can_win ⟨p + 1, g, s⟩ :=
   let n := h.1 + 1
   ⟨n,
    λ i => sorry,
@@ -86,16 +97,16 @@ theorem step_left {p g : Nat} (h : can_win ⟨p, g⟩) : can_win ⟨p + 1, g⟩ 
    by admit,
    λ i h => by admit⟩
 
-theorem step_right {p g : Nat} (h : can_win ⟨p + 1, g⟩) : can_win ⟨p, g⟩ := sorry
+theorem step_right {p g s: Nat} (h : can_win ⟨p + 1, g, s⟩) : can_win ⟨p, g, s⟩ := sorry
 
-example : can_win {position := 11, goal := 7} :=
+example : can_win {position := 11, goal := 7, size := 15} :=
 by apply step_left
    apply step_left
    apply step_left
    apply step_left
    exact done
 
-example : can_win {position := 9, goal := 11} :=
+example : can_win {position := 9, goal := 11, size := 15} :=
 by apply step_right
    apply step_right
    exact done

@@ -50,29 +50,30 @@ macro_rules
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   guard $ e.getAppNumArgs == 3
-  let p ← Lean.PrettyPrinter.Delaborator.withAppFn
-           $ Lean.PrettyPrinter.Delaborator.withAppFn
-           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
   let g ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
   let s ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.delab
   let e ← `(game_cell| ░)
   let player ← `(game_cell| @)
   let goalc ← `(game_cell| ★)
-  let position : Nat := p.isNatLit?.get!
+  let pexpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
+  dbg_trace pexpr
+  let position' ← (Lean.Meta.whnf pexpr)
+  let position : Nat := (Lean.Expr.natLit? position').get!
   let goal : Nat := g.isNatLit?.get!
   let size : Nat := s.isNatLit?.get!
   let a0 := Array.mkArray size e
   let a1 := Array.set! a0 position player
   let a2 := Array.set! a1 goal goalc
-  dbg_trace position
-  dbg_trace p
   dbg_trace g
   dbg_trace s
   `(┤$a2:game_cell*├)
 
-
 #reduce ┤░░@░★░░░░░░├
+
+#check GameState.mk (1 + 2) 5 10
 
 def allowed_move : GameState → GameState → Prop
 | ⟨n, g, s⟩, ⟨m, h, t⟩ => (m + 1 = n ∧ g = h) ∨ (m = n + 1 ∧ g = h)
@@ -107,7 +108,9 @@ by apply step_left
    exact done
 
 example : can_win {position := 9, goal := 11, size := 15} :=
-by apply step_right
+by apply step_left
+   apply step_right
+   apply step_right
    apply step_right
    exact done
 

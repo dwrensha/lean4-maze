@@ -112,18 +112,31 @@ macro_rules
         ║▓░▓▓▓▓▓║
         ╚═══════╝
 
+def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (Nat × Nat)
+| e => do
+  let e':Lean.Expr ← (Lean.Meta.whnf e)
+  let sizeArgs := Lean.Expr.getAppArgs e'
+  let numCols := (Lean.Expr.natLit? sizeArgs[0]).get!
+  let numRows := (Lean.Expr.natLit? sizeArgs[1]).get!
+  (numCols, numRows)
+
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   guard $ e.getAppNumArgs == 3
-  let pexpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
+  let sizeExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  let position':Lean.Expr ← (Lean.Meta.whnf pexpr)
-  let positionArgs := Lean.Expr.getAppArgs position'
-  let numCols := (Lean.Expr.natLit? positionArgs[0]).get!
-  let numRows := (Lean.Expr.natLit? positionArgs[1]).get!
+  let (numCols, numRows) ← extractXY sizeExpr
+
+  let positionExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
+           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
+  let (playerCol, playerRow) ← extractXY positionExpr
+
+  dbg_trace (playerCol, playerRow)
+
   let topBarCell ← `(horizontal_border| ═)
   let topBar := Array.mkArray numCols topBarCell
+  let playerCell ← `(game_cell| @)
   let emptyCell ← `(game_cell| ░)
   let emptyRow := Array.mkArray numCols emptyCell
   let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)

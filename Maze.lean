@@ -1,20 +1,5 @@
 import Lean
 
-/-
-a maze looks like:
-
-╔═══════╗
-║▓▓▓▓▓▓▓║
-║▓░▓@▓░▓║
-║▓░▓░░░▓║
-║▓░░▓░▓▓║
-║▓▓░▓░▓▓║
-║▓░░░░▓▓║
-║▓░▓▓▓▓▓║
-╚═══════╝
-
--/
-
 declare_syntax_cat game_cell
 declare_syntax_cat game_cell_sequence
 declare_syntax_cat game_row
@@ -36,6 +21,7 @@ syntax "║" game_cell* "║\n" : game_row
 
 syntax game_top_row game_row* game_bottom_row : term
 
+-- helper syntax for intermediate parser values
 syntax "╣{" game_row* "}╠" : term
 syntax "╣" game_cell* "╠" : term
 
@@ -115,21 +101,21 @@ inductive Move where
 @[simp]
 def make_move : GameState → Move → GameState
 | ⟨s, ⟨x,y⟩, w⟩, Move.east =>
-             if w.elem ⟨x+1, y⟩ ∨ s.x ≤ x + 1
-             then ⟨s, ⟨x,y⟩, w⟩
-             else ⟨s, ⟨x+1, y⟩, w⟩
+             if w.notElem ⟨x+1, y⟩ ∧ x + 1 ≤ s.x
+             then ⟨s, ⟨x+1, y⟩, w⟩
+             else ⟨s, ⟨x,y⟩, w⟩
 | ⟨s, ⟨x,y⟩, w⟩, Move.west =>
              if w.notElem ⟨x-1, y⟩
              then ⟨s, ⟨x-1, y⟩, w⟩
              else ⟨s, ⟨x,y⟩, w⟩
 | ⟨s, ⟨x,y⟩, w⟩, Move.north =>
-             if w.elem ⟨x, y-1⟩
-             then ⟨s, ⟨x,y⟩, w⟩
-             else ⟨s, ⟨x, y-1⟩, w⟩
+             if w.notElem ⟨x, y-1⟩
+             then ⟨s, ⟨x, y-1⟩, w⟩
+             else ⟨s, ⟨x,y⟩, w⟩
 | ⟨s, ⟨x,y⟩, w⟩, Move.south =>
-             if w.elem ⟨x, y+1⟩ ∨ s.y ≤ y + 1
-             then ⟨s, ⟨x,y⟩, w⟩
-             else ⟨s, ⟨x, y+1⟩, w⟩
+             if w.notElem ⟨x, y + 1⟩ ∧ y + 1 ≤ s.y
+             then ⟨s, ⟨x, y+1⟩, w⟩
+             else ⟨s, ⟨x,y⟩, w⟩
 
 def is_win : GameState → Prop
 | ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
@@ -156,40 +142,59 @@ theorem step_left
   can_win ⟨s,⟨x+1,y⟩,w⟩ :=
    by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x+1, y⟩,w⟩ Move.west :=
                by simp
-                  have h' : x + 1 - 1 = x := sorry
-                  rw [h']
+                  have h' : x + 1 - 1 = x := rfl
+                  rw [h', hclear']
                   simp
-                  admit
       rw [hmm] at h
-      have h' := can_still_win ⟨s,⟨x+1,y⟩,w⟩ Move.west h
-      assumption
+      exact can_still_win ⟨s,⟨x+1,y⟩,w⟩ Move.west h
 
 theorem step_right
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.contains ⟨x,y⟩ == false)
-  (hclear' : w.contains ⟨x+1,y⟩ == false)
+  (hclear : w.notElem ⟨x,y⟩)
+  (hclear' : w.notElem ⟨x+1,y⟩)
+  (hinbounds : x + 1 ≤ s.x)
   (h : can_win ⟨s,⟨x+1,y⟩,w⟩) :
-  can_win ⟨s,⟨x, y⟩,w⟩ := sorry
+  can_win ⟨s,⟨x, y⟩,w⟩ :=
+    by have hmm : GameState.mk s ⟨x+1,y⟩ w = make_move ⟨s, ⟨x,y⟩,w⟩ Move.east :=
+         by simp
+            rw [hclear']
+            simp [hinbounds]
+       rw [hmm] at h
+       exact can_still_win ⟨s, ⟨x,y⟩, w⟩ Move.east h
 
 theorem step_up
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.contains ⟨x,y+1⟩ == false)
-  (hclear' : w.contains ⟨x,y⟩ == false)
+  (hclear : w.notElem ⟨x,y+1⟩)
+  (hclear' : w.notElem ⟨x,y⟩)
   (h : can_win ⟨s,⟨x,y⟩,w⟩) :
-  can_win ⟨s,⟨x, y+1⟩,w⟩ := sorry
+  can_win ⟨s,⟨x, y+1⟩,w⟩ :=
+    by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x, y+1⟩,w⟩ Move.north :=
+         by simp
+            have h' : y + 1 - 1 = y := rfl
+            rw [h', hclear']
+            simp
+       rw [hmm] at h
+       exact can_still_win ⟨s,⟨x,y+1⟩,w⟩ Move.north h
 
 theorem step_down
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.contains ⟨x,y⟩ == false)
-  (hclear' : w.contains ⟨x,y+1⟩ == false)
+  (hclear : w.notElem ⟨x,y⟩)
+  (hclear' : w.notElem ⟨x,y+1⟩)
+  (hinbounds : y + 1 ≤ s.y)
   (h : can_win ⟨s,⟨x,y+1⟩,w⟩) :
-  can_win ⟨s,⟨x, y⟩,w⟩ := sorry
+  can_win ⟨s,⟨x, y⟩,w⟩ :=
+    by have hmm : GameState.mk s ⟨x,y+1⟩ w = make_move ⟨s,⟨x, y⟩,w⟩ Move.south :=
+            by simp
+               rw [hclear']
+               simp [hinbounds]
+       rw [hmm] at h
+       exact can_still_win ⟨s,⟨x,y⟩,w⟩ Move.south h
 
 def escape_west
   {sx sy : Nat}
@@ -240,9 +245,9 @@ def escape_south
 
 -- the `rfl`s are to discharge the `hclear` side-goals
 macro "west" : tactic => `(apply step_left; rfl; rfl)
-macro "east" : tactic => `(apply step_right; rfl; rfl)
+macro "east" : tactic => `(apply step_right; rfl; rfl; rfl)
 macro "north" : tactic => `(apply step_up; rfl; rfl)
-macro "south" : tactic => `(apply step_down; rfl; rfl)
+macro "south" : tactic => `(apply step_down; rfl; rfl; rfl)
 
 
 def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords

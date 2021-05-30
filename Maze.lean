@@ -145,9 +145,6 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   let e' ← (Lean.Meta.whnf e)
-  dbg_trace "e'"
-  dbg_trace e'
-
   guard $ e'.getAppNumArgs == 3
   let sizeExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
@@ -213,10 +210,10 @@ def allowed_move : GameState → GameState → Prop
 def is_win : GameState → Prop
 | ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
 
-def can_win (g : GameState) : Prop :=
+def can_win (state : GameState) : Prop :=
   ∃ (n : Nat),
   ∃ (m : Nat → GameState),
-  (g = m n) ∧
+  (state = m n) ∧
   (is_win (m 0)) ∧
   (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
 

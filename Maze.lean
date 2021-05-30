@@ -209,7 +209,13 @@ def escape_west
 def escape_east
   {sy x y : Nat}
   {w: List Coords} :
-  can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ := sorry
+  can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
+    ⟨[],
+     by have h : List.foldl make_move { size := { x := x + 1, y := sy }, position := { x := x, y := y }, walls := w } [] =
+            { size := { x := x + 1, y := sy }, position := { x := x, y := y }, walls := w } := rfl
+        rw [h]
+        exact Or.inr $ Or.inr $ Or.inl rfl
+    ⟩
 
 def escape_north
   {sx sy : Nat}
@@ -230,16 +236,9 @@ def escape_south
   {sx x y : Nat}
   {w: List Coords} :
   can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
-   ⟨[],
-    by have h : List.foldl make_move { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } [] =
-       { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } := by rfl
-       rw [h]
-       have h' : is_win { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } =
-                        (x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = y + 1) := rfl
-       rw [h']
-       exact Or.inr (Or.inr (Or.inr rfl))
-   ⟩
+   ⟨[], Or.inr (Or.inr (Or.inr rfl))⟩
 
+-- the `rfl`s are to discharge the `hclear` side-goals
 macro "west" : tactic => `(apply step_left; rfl; rfl)
 macro "east" : tactic => `(apply step_right; rfl; rfl)
 macro "north" : tactic => `(apply step_up; rfl; rfl)

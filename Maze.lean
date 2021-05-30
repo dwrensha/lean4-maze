@@ -132,7 +132,7 @@ def make_move : GameState → Move → GameState
              else ⟨s, ⟨x, y+1⟩, w⟩
 
 def is_win : GameState → Bool
-| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == sy
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 || y == 0 || x + 1 == sx || y + 1 == sy
 
 def can_win (state : GameState) : Prop :=
   ∃ (gs : List Move), is_win (List.foldl make_move state gs)
@@ -192,15 +192,18 @@ theorem step_down
   can_win ⟨s,⟨x, y⟩,w⟩ := sorry
 
 def escape_west
-  {s : Coords}
+  {sx sy : Nat}
   {y: Nat}
   {w: List Coords} :
-  can_win ⟨s,⟨0, y⟩,w⟩ :=
+  can_win ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
     ⟨[],
-     by have h : List.foldl make_move { size := s, position := { x := 0, y := y }, walls := w } [] =
-                 { size := s, position := { x := 0, y := y }, walls := w } := rfl
+     by have h : List.foldl make_move { size := ⟨sx, sy⟩, position := { x := 0, y := y }, walls := w } [] =
+                 { size := ⟨sx,sy⟩, position := { x := 0, y := y }, walls := w } := rfl
         rw [h]
-        admit
+        have h' : is_win { size := ⟨sx, sy⟩, position := { x := 0, y := y }, walls := w } =
+                  (0 == 0 || y == 0 || 0 + 1 == sx || y + 1 == sy) := by rfl
+        rw [h']
+        rfl
     ⟩
 
 def escape_east
@@ -217,7 +220,16 @@ def escape_north
 def escape_south
   {sx x y : Nat}
   {w: List Coords} :
-  can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ := sorry
+  can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
+   ⟨[],
+    by have h : List.foldl make_move { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } [] =
+       { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } := by rfl
+       rw [h]
+       have h' : is_win { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } =
+                        (x == 0 || y == 0 || x + 1 == sx || y + 1 == y + 1) := rfl
+       rw [h']
+       admit
+   ⟩
 
 
 macro "west" : tactic => `(apply step_left; rfl; rfl)

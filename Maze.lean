@@ -106,23 +106,15 @@ macro_rules
       `( game_state_from_cells ⟨$csize,$rsize⟩ ╣{$rows:game_row*}╠ )
 
 
-#reduce ╔═══════╗
-        ║▓▓▓▓▓▓▓║
-        ║▓░▓@▓░▓║
-        ║▓░▓░░░▓║
-        ║▓░░▓░▓▓║
-        ║▓▓░▓░▓▓║
-        ║▓░░░░▓▓║
-        ║▓░▓▓▓▓▓║
-        ╚═══════╝
-
 def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
 | e => do
   let e':Lean.Expr ← (Lean.Meta.whnf e)
   let sizeArgs := Lean.Expr.getAppArgs e'
   let f := Lean.Expr.getAppFn e'
-  let numCols := (Lean.Expr.natLit? sizeArgs[0]).get!
-  let numRows := (Lean.Expr.natLit? sizeArgs[1]).get!
+  let x ← Lean.Meta.whnf sizeArgs[0]
+  let y ← Lean.Meta.whnf sizeArgs[1]
+  let numCols := (Lean.Expr.natLit? x).get!
+  let numRows := (Lean.Expr.natLit? y).get!
   Coords.mk numCols numRows
 
 def extractWallList : Nat -> Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (List Coords)
@@ -153,6 +145,9 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   let e' ← (Lean.Meta.whnf e)
+  dbg_trace "e'"
+  dbg_trace e'
+
   guard $ e'.getAppNumArgs == 3
   let sizeExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
            $ Lean.PrettyPrinter.Delaborator.withAppFn
@@ -163,13 +158,14 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
            $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
   let playerCoords ← extractXY positionExpr
 
+  let topBarCell ← `(horizontal_border| ═)
+  let topBar := Array.mkArray numCols topBarCell
+
   let wallsExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
   let walls':Lean.Expr ← (Lean.Meta.whnf wallsExpr)
 
   let walls'' ← extractWallList 1000000 walls'
 
-  let topBarCell ← `(horizontal_border| ═)
-  let topBar := Array.mkArray numCols topBarCell
   let playerCell ← `(game_cell| @)
   let emptyCell ← `(game_cell| ░)
   let wallCell ← `(game_cell| ▓)
@@ -200,13 +196,11 @@ def maze1 := ╔════════╗
 
 def maze2 := ╔══════╗
              ║▓▓▓▓▓▓║
+             ║▓░░@░▓║
              ║▓░░░░▓║
-             ║▓░@░░▓║
              ║▓░░░░▓║
              ║▓▓▓▓░▓║
              ╚══════╝
-
-#reduce maze2
 
 def allowed_move : GameState → GameState → Prop
 | ⟨s, ⟨x,y⟩, w⟩, ⟨s', ⟨x',y'⟩, w'⟩ =>
@@ -227,7 +221,7 @@ def can_win (g : GameState) : Prop :=
   (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
 
 
-theorem step_left {s p: Coords} {w: List Coords} (h : can_win ⟨s,p,w⟩) : can_win ⟨s,⟨p.x +1, p.y⟩,w⟩ :=
+theorem step_left {s: Coords} {x y : Nat} {w: List Coords} (h : can_win ⟨s,⟨x,y⟩,w⟩) : can_win ⟨s,⟨x +1, y⟩,w⟩ :=
   let n := h.1 + 1
   ⟨n,
    λ i => sorry,
@@ -235,8 +229,9 @@ theorem step_left {s p: Coords} {w: List Coords} (h : can_win ⟨s,p,w⟩) : can
    by admit,
    λ i h => by admit⟩
 
-#reduce maze1
+--#reduce maze1
 
-example : can_win maze2 := by admit
---  apply step_left
---  admit
+example : can_win maze2 := by
+  apply step_left
+  admit
+

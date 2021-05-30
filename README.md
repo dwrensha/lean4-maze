@@ -46,7 +46,7 @@ example : can_escape maze :=
     south
 ```
 
-As you make progress, Lean's goal view will desplay your current state.
+As you make progress, Lean's goal view will display your current state.
 For example, after the moves made above, the state is shown as:
 
 ```lean

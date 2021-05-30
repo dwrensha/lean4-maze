@@ -13,9 +13,9 @@ syntax "\n╔" horizontal_border* "╗\n" : game_top_row
 
 syntax "╚" horizontal_border* "╝\n" : game_bottom_row
 
-syntax "░" : game_cell
-syntax "▓" : game_cell
-syntax "@" : game_cell
+syntax "░" : game_cell -- empty
+syntax "▓" : game_cell -- wall
+syntax "@" : game_cell -- player
 
 syntax "║" game_cell* "║\n" : game_row
 
@@ -120,10 +120,10 @@ def make_move : GameState → Move → GameState
 def is_win : GameState → Prop
 | ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
 
-def can_win (state : GameState) : Prop :=
+def can_escape (state : GameState) : Prop :=
   ∃ (gs : List Move), is_win (List.foldl make_move state gs)
 
-theorem can_still_win (g : GameState) (m : Move) (hg : can_win (make_move g m)) : can_win g :=
+theorem can_still_escape (g : GameState) (m : Move) (hg : can_escape (make_move g m)) : can_escape g :=
  have ⟨pms, hpms⟩ := hg
  Exists.intro
   (m::pms)
@@ -132,88 +132,86 @@ theorem can_still_win (g : GameState) (m : Move) (hg : can_win (make_move g m)) 
       rw [h']
       exact hpms)
 
-theorem step_left
+theorem step_west
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.notElem ⟨x+1,y⟩)
   (hclear' : w.notElem ⟨x,y⟩)
-  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
-  can_win ⟨s,⟨x+1,y⟩,w⟩ :=
+  (h : can_escape ⟨s,⟨x,y⟩,w⟩) :
+  can_escape ⟨s,⟨x+1,y⟩,w⟩ :=
    by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x+1, y⟩,w⟩ Move.west :=
                by simp
                   have h' : x + 1 - 1 = x := rfl
                   rw [h', hclear']
                   simp
       rw [hmm] at h
-      exact can_still_win ⟨s,⟨x+1,y⟩,w⟩ Move.west h
+      exact can_still_escape ⟨s,⟨x+1,y⟩,w⟩ Move.west h
 
-theorem step_right
+theorem step_east
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.notElem ⟨x,y⟩)
   (hclear' : w.notElem ⟨x+1,y⟩)
   (hinbounds : x + 1 ≤ s.x)
-  (h : can_win ⟨s,⟨x+1,y⟩,w⟩) :
-  can_win ⟨s,⟨x, y⟩,w⟩ :=
+  (h : can_escape ⟨s,⟨x+1,y⟩,w⟩) :
+  can_escape ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x+1,y⟩ w = make_move ⟨s, ⟨x,y⟩,w⟩ Move.east :=
          by simp
             rw [hclear']
             simp [hinbounds]
        rw [hmm] at h
-       exact can_still_win ⟨s, ⟨x,y⟩, w⟩ Move.east h
+       exact can_still_escape ⟨s, ⟨x,y⟩, w⟩ Move.east h
 
-theorem step_up
+theorem step_north
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.notElem ⟨x,y+1⟩)
   (hclear' : w.notElem ⟨x,y⟩)
-  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
-  can_win ⟨s,⟨x, y+1⟩,w⟩ :=
+  (h : can_escape ⟨s,⟨x,y⟩,w⟩) :
+  can_escape ⟨s,⟨x, y+1⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x, y+1⟩,w⟩ Move.north :=
          by simp
             have h' : y + 1 - 1 = y := rfl
             rw [h', hclear']
             simp
        rw [hmm] at h
-       exact can_still_win ⟨s,⟨x,y+1⟩,w⟩ Move.north h
+       exact can_still_escape ⟨s,⟨x,y+1⟩,w⟩ Move.north h
 
-theorem step_down
+theorem step_south
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.notElem ⟨x,y⟩)
   (hclear' : w.notElem ⟨x,y+1⟩)
   (hinbounds : y + 1 ≤ s.y)
-  (h : can_win ⟨s,⟨x,y+1⟩,w⟩) :
-  can_win ⟨s,⟨x, y⟩,w⟩ :=
+  (h : can_escape ⟨s,⟨x,y+1⟩,w⟩) :
+  can_escape ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y+1⟩ w = make_move ⟨s,⟨x, y⟩,w⟩ Move.south :=
             by simp
                rw [hclear']
                simp [hinbounds]
        rw [hmm] at h
-       exact can_still_win ⟨s,⟨x,y⟩,w⟩ Move.south h
+       exact can_still_escape ⟨s,⟨x,y⟩,w⟩ Move.south h
 
-def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : can_win ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
+def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
     ⟨[], Or.inl rfl⟩
 
-def escape_east {sy x y : Nat} {w : List Coords} : can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
+def escape_east {sy x y : Nat} {w : List Coords} : can_escape ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inl rfl⟩
 
-def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_win ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
+def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inl rfl⟩
 
-def escape_south {sx x y : Nat} {w: List Coords} : can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
+def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
--- the `rfl`s are to discharge the `hclear` side-goals
-macro "west" : tactic => `(apply step_left; rfl; rfl)
-macro "east" : tactic => `(apply step_right; rfl; rfl; rfl)
-macro "north" : tactic => `(apply step_up; rfl; rfl)
-macro "south" : tactic => `(apply step_down; rfl; rfl; rfl)
+-- the `rfl`s are to discharge the `hclear` and `hinbounds` side-goals
+macro "west" : tactic => `(apply step_west; rfl)
+macro "east" : tactic => `(apply step_east; rfl; rfl)
+macro "north" : tactic => `(apply step_north; rfl)
+macro "south" : tactic => `(apply step_south; rfl; rfl)
 
+---------------------------
+-- Now we will define a delaborator that will cause GameState to be rendered as a maze.
 
 def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
 | e => do
@@ -251,6 +249,7 @@ def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α →
 def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM Lean.Syntax
 | a => do `(game_row| ║ $a:game_cell* ║)
 
+-- The attribute [delab] registers this function as a delaborator.
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   let e' ← (Lean.Meta.whnf e)
@@ -288,6 +287,8 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
     $aa:game_row*
     ╚$topBar:horizontal_border*╝)
 
+--------------------------
+
 def maze1 := ╔════════╗
              ║▓▓▓▓▓▓▓▓║
              ║▓░▓@▓░▓▓║
@@ -310,7 +311,7 @@ def maze2 := ╔══════╗
 
 #reduce make_move maze2 Move.east
 
-example : can_win maze2 := by
+example : can_escape maze2 := by
   west
   west
   east

@@ -105,66 +105,64 @@ macro_rules
       let csize := Lean.Syntax.mkNumLit (toString tb.size) -- there's gotta be a better way to do this
       `( game_state_from_cells ⟨$csize,$rsize⟩ ╣{$rows:game_row*}╠ )
 
-def allowed_move : GameState → GameState → Bool
-| ⟨s, ⟨x,y⟩, w⟩, ⟨s', ⟨x',y'⟩, w'⟩ =>
-      w == w' ∧                -- walls are static
-      s == s' ∧                -- size is static
-      w.notElem ⟨x', y'⟩ ∧ -- not allowed to enter wall
-      ((x == x' ∧ (y == y' + 1 ∨ y + 1 == y')) ||
-       (y == y' ∧ (x == x' + 1 ∨ x + 1 == x')))
+
+inductive Move where
+  | east  : Move
+  | west  : Move
+  | north : Move
+  | south : Move
+
+@[simp]
+def make_move : GameState → Move → GameState
+| ⟨s, ⟨x,y⟩, w⟩, Move.east =>
+             if w.elem ⟨x+1, y⟩ ∨ s.x ≤ x + 1
+             then ⟨s, ⟨x,y⟩, w⟩
+             else ⟨s, ⟨x+1, y⟩, w⟩
+| ⟨s, ⟨x,y⟩, w⟩, Move.west =>
+             if w.notElem ⟨x-1, y⟩
+             then ⟨s, ⟨x-1, y⟩, w⟩
+             else ⟨s, ⟨x,y⟩, w⟩
+| ⟨s, ⟨x,y⟩, w⟩, Move.north =>
+             if w.elem ⟨x, y-1⟩
+             then ⟨s, ⟨x,y⟩, w⟩
+             else ⟨s, ⟨x, y-1⟩, w⟩
+| ⟨s, ⟨x,y⟩, w⟩, Move.south =>
+             if w.elem ⟨x, y+1⟩ ∨ s.y ≤ y + 1
+             then ⟨s, ⟨x,y⟩, w⟩
+             else ⟨s, ⟨x, y+1⟩, w⟩
 
 def is_win : GameState → Bool
 | ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == sy
 
-def ends_with_win : List GameState → Bool
-| [] => false
-| g :: [] => is_win g
-| g :: gs => ends_with_win gs
-
-theorem still_ends_with_win (gs: List GameState) (h: ends_with_win gs) (g: GameState) :
-  ends_with_win (g::gs) = true :=
-by simp
-   admit
-
-def consecutive_pairs {α : Type} : List α → List (α × α)
-| [] => []
-| a::[] => []
-| a1::a2::rest => ⟨a1, a2⟩ :: consecutive_pairs rest
-
-def all_moves_allowed (gs: List GameState) : Bool :=
-  (consecutive_pairs gs).all (λ(g1,g2)=> allowed_move g1 g2)
-
-theorem all_moves_still_allowed
-  {g0 : GameState}
-  {gs : List GameState}
-  (h : all_moves_allowed (g0::gs))
-  (g : GameState)
-  (hg : allowed_move g g0) :
-  all_moves_allowed (g::gs) :=
-by admit
-
 def can_win (state : GameState) : Prop :=
-  ∃ (gs : List GameState), ends_with_win gs ∧ all_moves_allowed gs
+  ∃ (gs : List Move), is_win (List.foldl make_move state gs)
+
+theorem can_still_win (g : GameState) (m : Move) (hg : can_win (make_move g m)) : can_win g :=
+ have ⟨pms, hpms⟩ := hg
+ Exists.intro
+  (m::pms)
+  (by have h' : List.foldl make_move g (m :: pms) =
+                     List.foldl make_move (make_move g m) pms := rfl
+      rw [h']
+      exact hpms)
 
 theorem step_left
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
-  (hclear : w.contains ⟨x+1,y⟩ == false)
-  (hclear' : w.contains ⟨x,y⟩ == false)
+  (hclear : w.notElem ⟨x+1,y⟩)
+  (hclear' : w.notElem ⟨x,y⟩)
   (h : can_win ⟨s,⟨x,y⟩,w⟩) :
-  can_win ⟨s,⟨x+1, y⟩,w⟩ :=
-  let g := GameState.mk s ⟨x,y⟩ w
-  let gs := h.1
-  ⟨ g::gs,
-    still_ends_with_win gs h.2.1 g,
-    match gs with
-    | [] => by rfl
-    | g'::gs' =>
-           let hg : allowed_move g g' = true := sorry
-           sorry
-   ⟩
-
+  can_win ⟨s,⟨x+1,y⟩,w⟩ :=
+   by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x+1, y⟩,w⟩ Move.west :=
+               by simp
+                  have h' : x + 1 - 1 = x := sorry
+                  rw [h']
+                  simp
+                  admit
+      rw [hmm] at h
+      have h' := can_still_win ⟨s,⟨x+1,y⟩,w⟩ Move.west h
+      assumption
 
 theorem step_right
   {s: Coords}
@@ -193,12 +191,17 @@ theorem step_down
   (h : can_win ⟨s,⟨x,y+1⟩,w⟩) :
   can_win ⟨s,⟨x, y⟩,w⟩ := sorry
 
-
 def escape_west
   {s : Coords}
   {y: Nat}
   {w: List Coords} :
-  can_win ⟨s,⟨0, y⟩,w⟩ := sorry
+  can_win ⟨s,⟨0, y⟩,w⟩ :=
+    ⟨[],
+     by have h : List.foldl make_move { size := s, position := { x := 0, y := y }, walls := w } [] =
+                 { size := s, position := { x := 0, y := y }, walls := w } := rfl
+        rw [h]
+        admit
+    ⟩
 
 def escape_east
   {sy x y : Nat}
@@ -316,18 +319,15 @@ def maze2 := ╔══════╗
              ║▓▓▓▓░▓║
              ╚══════╝
 
+#reduce make_move maze2 Move.east
+
 example : can_win maze2 := by
   west
   west
   east
-  west
   south
   south
-  east
   east
   east
   south
   apply escape_south
-
-
-

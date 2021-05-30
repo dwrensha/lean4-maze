@@ -132,7 +132,7 @@ def make_move : GameState → Move → GameState
              else ⟨s, ⟨x, y+1⟩, w⟩
 
 def is_win : GameState → Prop
-| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == sy
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
 
 def can_win (state : GameState) : Prop :=
   ∃ (gs : List Move), is_win (List.foldl make_move state gs)
@@ -201,10 +201,9 @@ def escape_west
                  { size := ⟨sx,sy⟩, position := { x := 0, y := y }, walls := w } := rfl
         rw [h]
         have h' : is_win { size := ⟨sx, sy⟩, position := { x := 0, y := y }, walls := w } =
-                  (0 == 0 ∨ y == 0 ∨ 0 + 1 == sx ∨ y + 1 == sy) := by rfl
+                  (0 = 0 ∨ y = 0 ∨ 0 + 1 = sx ∨ y + 1 = sy) := by rfl
         rw [h']
-        have h0 : 0 == 0 := rfl
-        exact Or.inl h0
+        exact Or.inl rfl
     ⟩
 
 def escape_east
@@ -222,10 +221,9 @@ def escape_north
                  { size := ⟨sx,sy⟩, position := { x := x, y := 0 }, walls := w } := rfl
         rw [h]
         have h' : is_win { size := ⟨sx, sy⟩, position := { x := x, y := 0 }, walls := w } =
-                  (x == 0 ∨ 0 == 0 ∨ x + 1 == sx ∨ 0 + 1 == sy) := by rfl
+                  (x = 0 ∨ 0 = 0 ∨ x + 1 = sx ∨ 0 + 1 = sy) := by rfl
         rw [h']
-        have h0 : 0 == 0 := rfl
-        exact Or.inr $ Or.inl h0
+        exact Or.inr $ Or.inl rfl
     ⟩
 
 def escape_south
@@ -237,10 +235,9 @@ def escape_south
        { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } := by rfl
        rw [h]
        have h' : is_win { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } =
-                        (x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == y + 1) := rfl
+                        (x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = y + 1) := rfl
        rw [h']
-       have hy : y + 1 == y + 1 := admit
-       exact Or.inr (Or.inr (Or.inr hy))
+       exact Or.inr (Or.inr (Or.inr rfl))
    ⟩
 
 macro "west" : tactic => `(apply step_left; rfl; rfl)

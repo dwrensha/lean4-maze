@@ -131,8 +131,8 @@ def make_move : GameState → Move → GameState
              then ⟨s, ⟨x,y⟩, w⟩
              else ⟨s, ⟨x, y+1⟩, w⟩
 
-def is_win : GameState → Bool
-| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 || y == 0 || x + 1 == sx || y + 1 == sy
+def is_win : GameState → Prop
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == sy
 
 def can_win (state : GameState) : Prop :=
   ∃ (gs : List Move), is_win (List.foldl make_move state gs)
@@ -201,9 +201,10 @@ def escape_west
                  { size := ⟨sx,sy⟩, position := { x := 0, y := y }, walls := w } := rfl
         rw [h]
         have h' : is_win { size := ⟨sx, sy⟩, position := { x := 0, y := y }, walls := w } =
-                  (0 == 0 || y == 0 || 0 + 1 == sx || y + 1 == sy) := by rfl
+                  (0 == 0 ∨ y == 0 ∨ 0 + 1 == sx ∨ y + 1 == sy) := by rfl
         rw [h']
-        rfl
+        have h0 : 0 == 0 := rfl
+        exact Or.inl h0
     ⟩
 
 def escape_east
@@ -212,10 +213,20 @@ def escape_east
   can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ := sorry
 
 def escape_north
-  {s : Coords}
+  {sx sy : Nat}
   {x : Nat}
   {w: List Coords} :
-  can_win ⟨s,⟨x, 0⟩,w⟩ := sorry
+  can_win ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
+    ⟨[],
+     by have h : List.foldl make_move { size := ⟨sx, sy⟩, position := { x := x, y := 0 }, walls := w } [] =
+                 { size := ⟨sx,sy⟩, position := { x := x, y := 0 }, walls := w } := rfl
+        rw [h]
+        have h' : is_win { size := ⟨sx, sy⟩, position := { x := x, y := 0 }, walls := w } =
+                  (x == 0 ∨ 0 == 0 ∨ x + 1 == sx ∨ 0 + 1 == sy) := by rfl
+        rw [h']
+        have h0 : 0 == 0 := rfl
+        exact Or.inr $ Or.inl h0
+    ⟩
 
 def escape_south
   {sx x y : Nat}
@@ -226,11 +237,11 @@ def escape_south
        { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } := by rfl
        rw [h]
        have h' : is_win { size := { x := sx, y := y + 1 }, position := { x := x, y := y }, walls := w } =
-                        (x == 0 || y == 0 || x + 1 == sx || y + 1 == y + 1) := rfl
+                        (x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == y + 1) := rfl
        rw [h']
-       admit
+       have hy : y + 1 == y + 1 := admit
+       exact Or.inr (Or.inr (Or.inr hy))
    ⟩
-
 
 macro "west" : tactic => `(apply step_left; rfl; rfl)
 macro "east" : tactic => `(apply step_right; rfl; rfl)

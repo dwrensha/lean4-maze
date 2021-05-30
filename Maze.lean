@@ -105,6 +105,123 @@ macro_rules
       let csize := Lean.Syntax.mkNumLit (toString tb.size) -- there's gotta be a better way to do this
       `( game_state_from_cells ⟨$csize,$rsize⟩ ╣{$rows:game_row*}╠ )
 
+def allowed_move : GameState → GameState → Bool
+| ⟨s, ⟨x,y⟩, w⟩, ⟨s', ⟨x',y'⟩, w'⟩ =>
+      w == w' ∧                -- walls are static
+      s == s' ∧                -- size is static
+      w.notElem ⟨x', y'⟩ ∧ -- not allowed to enter wall
+      ((x == x' ∧ (y == y' + 1 ∨ y + 1 == y')) ||
+       (y == y' ∧ (x == x' + 1 ∨ x + 1 == x')))
+
+def is_win : GameState → Bool
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x == 0 ∨ y == 0 ∨ x + 1 == sx ∨ y + 1 == sy
+
+def ends_with_win : List GameState → Bool
+| [] => false
+| g :: [] => is_win g
+| g :: gs => ends_with_win gs
+
+theorem still_ends_with_win (gs: List GameState) (h: ends_with_win gs) (g: GameState) :
+  ends_with_win (g::gs) = true :=
+by simp
+   admit
+
+def consecutive_pairs {α : Type} : List α → List (α × α)
+| [] => []
+| a::[] => []
+| a1::a2::rest => ⟨a1, a2⟩ :: consecutive_pairs rest
+
+def all_moves_allowed (gs: List GameState) : Bool :=
+  (consecutive_pairs gs).all (λ(g1,g2)=> allowed_move g1 g2)
+
+theorem all_moves_still_allowed
+  {g0 : GameState}
+  {gs : List GameState}
+  (h : all_moves_allowed (g0::gs))
+  (g : GameState)
+  (hg : allowed_move g g0) :
+  all_moves_allowed (g::gs) :=
+by admit
+
+def can_win (state : GameState) : Prop :=
+  ∃ (gs : List GameState), ends_with_win gs ∧ all_moves_allowed gs
+
+theorem step_left
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x+1,y⟩ == false)
+  (hclear' : w.contains ⟨x,y⟩ == false)
+  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
+  can_win ⟨s,⟨x+1, y⟩,w⟩ :=
+  let g := GameState.mk s ⟨x,y⟩ w
+  let gs := h.1
+  ⟨ g::gs,
+    still_ends_with_win gs h.2.1 g,
+    match gs with
+    | [] => by rfl
+    | g'::gs' =>
+           let hg : allowed_move g g' = true := sorry
+           sorry
+   ⟩
+
+
+theorem step_right
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x,y⟩ == false)
+  (hclear' : w.contains ⟨x+1,y⟩ == false)
+  (h : can_win ⟨s,⟨x+1,y⟩,w⟩) :
+  can_win ⟨s,⟨x, y⟩,w⟩ := sorry
+
+theorem step_up
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x,y+1⟩ == false)
+  (hclear' : w.contains ⟨x,y⟩ == false)
+  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
+  can_win ⟨s,⟨x, y+1⟩,w⟩ := sorry
+
+theorem step_down
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x,y⟩ == false)
+  (hclear' : w.contains ⟨x,y+1⟩ == false)
+  (h : can_win ⟨s,⟨x,y+1⟩,w⟩) :
+  can_win ⟨s,⟨x, y⟩,w⟩ := sorry
+
+
+def escape_west
+  {s : Coords}
+  {y: Nat}
+  {w: List Coords} :
+  can_win ⟨s,⟨0, y⟩,w⟩ := sorry
+
+def escape_east
+  {sy x y : Nat}
+  {w: List Coords} :
+  can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ := sorry
+
+def escape_north
+  {s : Coords}
+  {x : Nat}
+  {w: List Coords} :
+  can_win ⟨s,⟨x, 0⟩,w⟩ := sorry
+
+def escape_south
+  {sx x y : Nat}
+  {w: List Coords} :
+  can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ := sorry
+
+
+macro "west" : tactic => `(apply step_left; rfl; rfl)
+macro "east" : tactic => `(apply step_right; rfl; rfl)
+macro "north" : tactic => `(apply step_up; rfl; rfl)
+macro "south" : tactic => `(apply step_down; rfl; rfl)
+
 
 def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
 | e => do
@@ -198,113 +315,6 @@ def maze2 := ╔══════╗
              ║▓░░░░▓║
              ║▓▓▓▓░▓║
              ╚══════╝
-
-def allowed_move : GameState → GameState → Prop
-| ⟨s, ⟨x,y⟩, w⟩, ⟨s', ⟨x',y'⟩, w'⟩ =>
-      w = w' ∧                -- walls are static
-      s = s' ∧                -- size is static
-      (w.contains ⟨x',y'⟩ = false) ∧ -- not allowed to enter wall
-      ((x = x' ∧ (y = y' + 1 ∨ y + 1 = y')) ∨
-       (y = y' ∧ (x = x' + 1 ∨ x + 1 = x')))
-
-def is_win : GameState → Prop
-| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
-
-def can_win (state : GameState) : Prop :=
-  ∃ (n : Nat),
-  ∃ (m : Nat → GameState),
-  (state = m n) ∧
-  (is_win (m 0)) ∧
-  (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
-
-theorem step_left
-  {s: Coords}
-  {x y : Nat}
-  {w: List Coords}
-  (hclear : w.contains ⟨x+1,y⟩ == false)
-  (hclear' : w.contains ⟨x,y⟩ == false)
-  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
-  can_win ⟨s,⟨x+1, y⟩,w⟩ :=
-  let n := h.1 + 1
-  ⟨n,
-   λ i => sorry,
-   by admit,
-   by admit,
-   λ i h => by admit⟩
-
-theorem step_right
-  {s: Coords}
-  {x y : Nat}
-  {w: List Coords}
-  (hclear : w.contains ⟨x,y⟩ == false)
-  (hclear' : w.contains ⟨x+1,y⟩ == false)
-  (h : can_win ⟨s,⟨x+1,y⟩,w⟩) :
-  can_win ⟨s,⟨x, y⟩,w⟩ :=
-  let n := h.1 + 1
-  ⟨n,
-   λ i => sorry,
-   by admit,
-   by admit,
-   λ i h => by admit⟩
-
-theorem step_up
-  {s: Coords}
-  {x y : Nat}
-  {w: List Coords}
-  (hclear : w.contains ⟨x,y+1⟩ == false)
-  (hclear' : w.contains ⟨x,y⟩ == false)
-  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
-  can_win ⟨s,⟨x, y+1⟩,w⟩ :=
-  let n := h.1 + 1
-  ⟨n,
-   λ i => sorry,
-   by admit,
-   by admit,
-   λ i h => by admit⟩
-
-theorem step_down
-  {s: Coords}
-  {x y : Nat}
-  {w: List Coords}
-  (hclear : w.contains ⟨x,y⟩ == false)
-  (hclear' : w.contains ⟨x,y+1⟩ == false)
-  (h : can_win ⟨s,⟨x,y+1⟩,w⟩) :
-  can_win ⟨s,⟨x, y⟩,w⟩ :=
-  let n := h.1 + 1
-  ⟨n,
-   λ i => sorry,
-   by admit,
-   by admit,
-   λ i h => by admit⟩
-
-
-def escape_west
-  {s : Coords}
-  {y: Nat}
-  {w: List Coords} :
-  can_win ⟨s,⟨0, y⟩,w⟩ := sorry
-
-def escape_east
-  {sy x y : Nat}
-  {w: List Coords} :
-  can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ := sorry
-
-def escape_north
-  {s : Coords}
-  {x : Nat}
-  {w: List Coords} :
-  can_win ⟨s,⟨x, 0⟩,w⟩ := sorry
-
-def escape_south
-  {sx x y : Nat}
-  {w: List Coords} :
-  can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ := sorry
-
-
-macro "west" : tactic => `(apply step_left; rfl; rfl)
-macro "east" : tactic => `(apply step_right; rfl; rfl)
-macro "north" : tactic => `(apply step_up; rfl; rfl)
-macro "south" : tactic => `(apply step_down; rfl; rfl)
 
 example : can_win maze2 := by
   west

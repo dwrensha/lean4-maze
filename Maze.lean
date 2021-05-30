@@ -289,7 +289,36 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
 
 --------------------------
 
-def maze1 := ╔════════╗
+def maze0 := ╔═╗
+             ║@║
+             ╚═╝
+
+-- can escape the trivial maze in any direction
+example : can_escape maze0 := by apply escape_north
+example : can_escape maze0 := by apply escape_south
+example : can_escape maze0 := by apply escape_east
+example : can_escape maze0 := by apply escape_west
+
+def maze1 := ╔══════╗
+             ║▓▓▓▓▓▓║
+             ║▓░░@░▓║
+             ║▓░░░░▓║
+             ║▓░░░░▓║
+             ║▓▓▓▓░▓║
+             ╚══════╝
+
+example : can_escape maze1 := by
+  west
+  west
+  east
+  south
+  south
+  east
+  east
+  south
+  apply escape_south
+
+def maze2 := ╔════════╗
              ║▓▓▓▓▓▓▓▓║
              ║▓░▓@▓░▓▓║
              ║▓░▓░░░▓▓║
@@ -301,23 +330,48 @@ def maze1 := ╔════════╗
              ║▓▓▓▓▓▓▓▓║
              ╚════════╝
 
-def maze2 := ╔══════╗
-             ║▓▓▓▓▓▓║
-             ║▓░░@░▓║
-             ║▓░░░░▓║
-             ║▓░░░░▓║
-             ║▓▓▓▓░▓║
-             ╚══════╝
+example : can_escape maze2 :=
+ by south
+    east
+    south
+    south
+    south
+    west
+    west
+    west
+    south
+    south
+    east
+    east
+    east
+    east
+    east
+    north
+    north
+    north
+    east
+    apply escape_east
 
-#reduce make_move maze2 Move.east
+def maze3 := ╔════════════════════════════╗
+             ║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║
+             ║▓░░░░░░░░░░░░░░░░░░░░▓░░░@░▓║
+             ║▓░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░▓░▓▓▓▓▓║
+             ║▓░▓░░░▓░░░░▓░░░░░░░░░▓░▓░░░▓║
+             ║▓░▓░▓░▓░▓▓▓▓░▓▓▓▓▓▓▓▓▓░▓░▓░▓║
+             ║▓░▓░▓░▓░▓░░░░▓░░░░░░░░░░░▓░▓║
+             ║▓░▓░▓░▓░▓░▓▓▓▓▓▓▓▓▓▓▓▓░▓▓▓░▓║
+             ║▓░▓░▓░▓░░░▓░░░░░░░░░░▓░░░▓░▓║
+             ║▓░▓░▓░▓▓▓░▓░▓▓▓▓▓▓▓▓▓▓░▓░▓░▓║
+             ║▓░▓░▓░░░░░▓░░░░░░░░░░░░▓░▓░▓║
+             ║▓░▓░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░▓║
+             ║░░▓░░░░░░░░░░░░░░░░░░░░░░░░▓║
+             ║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║
+             ╚════════════════════════════╝
 
-example : can_escape maze2 := by
-  west
-  west
-  east
-  south
-  south
-  east
-  east
-  south
-  apply escape_south
+example : can_escape maze3 :=
+ by west
+    west
+    west
+    south
+    admit -- can you finish the proof?
+

@@ -220,8 +220,14 @@ def can_win (g : GameState) : Prop :=
   (is_win (m 0)) ∧
   (∀ (i : Nat), i < n → allowed_move (m i) (m (i + 1)))
 
-
-theorem step_left {s: Coords} {x y : Nat} {w: List Coords} (h : can_win ⟨s,⟨x,y⟩,w⟩) : can_win ⟨s,⟨x +1, y⟩,w⟩ :=
+theorem step_left
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x+1,y⟩ == false)
+  (hclear' : w.contains ⟨x,y⟩ == false)
+  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
+  can_win ⟨s,⟨x+1, y⟩,w⟩ :=
   let n := h.1 + 1
   ⟨n,
    λ i => sorry,
@@ -229,9 +235,92 @@ theorem step_left {s: Coords} {x y : Nat} {w: List Coords} (h : can_win ⟨s,⟨
    by admit,
    λ i h => by admit⟩
 
---#reduce maze1
+theorem step_right
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x,y⟩ == false)
+  (hclear' : w.contains ⟨x+1,y⟩ == false)
+  (h : can_win ⟨s,⟨x+1,y⟩,w⟩) :
+  can_win ⟨s,⟨x, y⟩,w⟩ :=
+  let n := h.1 + 1
+  ⟨n,
+   λ i => sorry,
+   by admit,
+   by admit,
+   λ i h => by admit⟩
+
+theorem step_up
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x,y+1⟩ == false)
+  (hclear' : w.contains ⟨x,y⟩ == false)
+  (h : can_win ⟨s,⟨x,y⟩,w⟩) :
+  can_win ⟨s,⟨x, y+1⟩,w⟩ :=
+  let n := h.1 + 1
+  ⟨n,
+   λ i => sorry,
+   by admit,
+   by admit,
+   λ i h => by admit⟩
+
+theorem step_down
+  {s: Coords}
+  {x y : Nat}
+  {w: List Coords}
+  (hclear : w.contains ⟨x,y⟩ == false)
+  (hclear' : w.contains ⟨x,y+1⟩ == false)
+  (h : can_win ⟨s,⟨x,y+1⟩,w⟩) :
+  can_win ⟨s,⟨x, y⟩,w⟩ :=
+  let n := h.1 + 1
+  ⟨n,
+   λ i => sorry,
+   by admit,
+   by admit,
+   λ i h => by admit⟩
+
+
+def escape_west
+  {s : Coords}
+  {y: Nat}
+  {w: List Coords} :
+  can_win ⟨s,⟨0, y⟩,w⟩ := sorry
+
+def escape_east
+  {sy x y : Nat}
+  {w: List Coords} :
+  can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ := sorry
+
+def escape_north
+  {s : Coords}
+  {x : Nat}
+  {w: List Coords} :
+  can_win ⟨s,⟨x, 0⟩,w⟩ := sorry
+
+def escape_south
+  {sx x y : Nat}
+  {w: List Coords} :
+  can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ := sorry
+
+
+macro "west" : tactic => `(apply step_left; rfl; rfl)
+macro "east" : tactic => `(apply step_right; rfl; rfl)
+macro "north" : tactic => `(apply step_up; rfl; rfl)
+macro "south" : tactic => `(apply step_down; rfl; rfl)
 
 example : can_win maze2 := by
-  apply step_left
-  admit
+  west
+  west
+  east
+  west
+  south
+  south
+  east
+  east
+  east
+  south
+  apply escape_south
+
+
 

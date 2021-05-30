@@ -196,52 +196,17 @@ theorem step_down
        rw [hmm] at h
        exact can_still_win ⟨s,⟨x,y⟩,w⟩ Move.south h
 
-def escape_west
-  {sx sy : Nat}
-  {y: Nat}
-  {w: List Coords} :
-  can_win ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
-    ⟨[],
-     by have h : List.foldl make_move { size := ⟨sx, sy⟩, position := { x := 0, y := y }, walls := w } [] =
-                 { size := ⟨sx,sy⟩, position := { x := 0, y := y }, walls := w } := rfl
-        rw [h]
-        have h' : is_win { size := ⟨sx, sy⟩, position := { x := 0, y := y }, walls := w } =
-                  (0 = 0 ∨ y = 0 ∨ 0 + 1 = sx ∨ y + 1 = sy) := by rfl
-        rw [h']
-        exact Or.inl rfl
-    ⟩
+def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : can_win ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
+    ⟨[], Or.inl rfl⟩
 
-def escape_east
-  {sy x y : Nat}
-  {w: List Coords} :
-  can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
-    ⟨[],
-     by have h : List.foldl make_move { size := { x := x + 1, y := sy }, position := { x := x, y := y }, walls := w } [] =
-            { size := { x := x + 1, y := sy }, position := { x := x, y := y }, walls := w } := rfl
-        rw [h]
-        exact Or.inr $ Or.inr $ Or.inl rfl
-    ⟩
+def escape_east {sy x y : Nat} {w : List Coords} : can_win ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
+  ⟨[], Or.inr $ Or.inr $ Or.inl rfl⟩
 
-def escape_north
-  {sx sy : Nat}
-  {x : Nat}
-  {w: List Coords} :
-  can_win ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
-    ⟨[],
-     by have h : List.foldl make_move { size := ⟨sx, sy⟩, position := { x := x, y := 0 }, walls := w } [] =
-                 { size := ⟨sx,sy⟩, position := { x := x, y := 0 }, walls := w } := rfl
-        rw [h]
-        have h' : is_win { size := ⟨sx, sy⟩, position := { x := x, y := 0 }, walls := w } =
-                  (x = 0 ∨ 0 = 0 ∨ x + 1 = sx ∨ 0 + 1 = sy) := by rfl
-        rw [h']
-        exact Or.inr $ Or.inl rfl
-    ⟩
+def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_win ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
+  ⟨[], Or.inr $ Or.inl rfl⟩
 
-def escape_south
-  {sx x y : Nat}
-  {w: List Coords} :
-  can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
-   ⟨[], Or.inr (Or.inr (Or.inr rfl))⟩
+def escape_south {sx x y : Nat} {w: List Coords} : can_win ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
+  ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
 -- the `rfl`s are to discharge the `hclear` side-goals
 macro "west" : tactic => `(apply step_left; rfl; rfl)

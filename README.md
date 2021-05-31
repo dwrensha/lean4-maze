@@ -83,4 +83,11 @@ we define a delaboration function and register it with the pretty printer.
 
 Lean 4 lets us do all of this in-line, in ordinary Lean 4 code.
 
+As you traverse a maze, you are constructing a proof
+that the maze satisfies the `can_escape` predicate, definted as
+
+```lean
+def can_escape (state : GameState) : Prop :=
+  ∃ (gs : List Move), is_win (List.foldl make_move state gs)
+```
 

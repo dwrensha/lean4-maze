@@ -248,28 +248,18 @@ def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α →
 def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM Lean.Syntax
 | a => do `(game_row| ║ $a:game_cell* ║)
 
--- The attribute [delab] registers this function as a delaborator.
+-- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
   let e' ← (Lean.Meta.whnf e)
   guard $ e'.getAppNumArgs == 3
-  let sizeExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
-           $ Lean.PrettyPrinter.Delaborator.withAppFn
-           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  let ⟨numCols, numRows⟩ ← extractXY sizeExpr
-
-  let positionExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppFn
-           $ Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  let playerCoords ← extractXY positionExpr
+  let gameStateArgs := Lean.Expr.getAppArgs e'
+  let ⟨numCols, numRows⟩ ← extractXY gameStateArgs[0]
+  let playerCoords ← extractXY gameStateArgs[1]
+  let walls'' ← extractWallList gameStateArgs[2]
 
   let topBarCell ← `(horizontal_border| ═)
   let topBar := Array.mkArray numCols topBarCell
-
-  let wallsExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
-  let walls':Lean.Expr ← (Lean.Meta.whnf wallsExpr)
-
-  let walls'' ← extractWallList walls'
-
   let playerCell ← `(game_cell| @)
   let emptyCell ← `(game_cell| ░)
   let wallCell ← `(game_cell| ▓)
@@ -285,6 +275,9 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
   `(╔$topBar:horizontal_border*╗
     $aa:game_row*
     ╚$topBar:horizontal_border*╝)
+
+-- We register the same elaborator for applications of the game_state_from_cells function.
+@[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab := delabGameState
 
 --------------------------
 
@@ -373,4 +366,3 @@ example : can_escape maze3 :=
     west
     south
     admit -- can you finish the proof?
-

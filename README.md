@@ -30,8 +30,8 @@ def maze := ╔════════╗
 ```
 
 The `@` symbol denotes your current location.
-You are free to move within light-colored cells.
-The dark-colored cells are walls.
+You are free to move within the `░` cells.
+The `▓` cells are walls.
 
 Your goal is to escape the maze at any of its borders.
 

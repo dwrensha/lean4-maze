@@ -19,7 +19,7 @@ syntax "@" : game_cell -- player
 
 syntax "║" game_cell* "║\n" : game_row
 
-syntax game_top_row game_row* game_bottom_row : term
+syntax:max game_top_row game_row* game_bottom_row : term
 
 -- helper syntax for intermediate parser values
 syntax "╣{" game_row* "}╠" : term

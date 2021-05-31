@@ -73,6 +73,14 @@ When you reach the boundary, you can finish your proof with one of
 
 ## how does it work?
 
+As you traverse a maze, you are constructing a proof
+that the maze satisfies the `can_escape` predicate, defined as
+
+```lean
+def can_escape (state : GameState) : Prop :=
+  ∃ (gs : List Move), is_win (List.foldl make_move state gs)
+```
+
 The mazes as drawn above are actual valid Lean 4 syntax!
 
 We define new syntax categories and some `macro_rules` for elaborating
@@ -82,12 +90,4 @@ To get Lean to render the values back in the above format,
 we define a delaboration function and register it with the pretty printer.
 
 Lean 4 lets us do all of this in-line, in ordinary Lean 4 code.
-
-As you traverse a maze, you are constructing a proof
-that the maze satisfies the `can_escape` predicate, defined as
-
-```lean
-def can_escape (state : GameState) : Prop :=
-  ∃ (gs : List Move), is_win (List.foldl make_move state gs)
-```
 

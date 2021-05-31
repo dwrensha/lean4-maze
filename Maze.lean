@@ -224,14 +224,13 @@ def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
   let numRows := (Lean.Expr.natLit? y).get!
   Coords.mk numCols numRows
 
-def extractWallList : Nat -> Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (List Coords)
-| 0, _ => [] -- recursion deptch reached.
-| (depth+1), exp => do
+partial def extractWallList : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (List Coords)
+| exp => do
   let exp':Lean.Expr ← (Lean.Meta.whnf exp)
   let f := Lean.Expr.getAppFn exp'
   if f.constName!.toString == "List.cons"
   then let consArgs := Lean.Expr.getAppArgs exp'
-       let rest ← extractWallList depth consArgs[2]
+       let rest ← extractWallList consArgs[2]
        let ⟨wallCol, wallRow⟩ ← extractXY consArgs[1]
        (Coords.mk wallCol wallRow) :: rest
   else [] -- "List.nil"
@@ -269,7 +268,7 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
   let wallsExpr:Lean.Expr ← Lean.PrettyPrinter.Delaborator.withAppArg Lean.PrettyPrinter.Delaborator.getExpr
   let walls':Lean.Expr ← (Lean.Meta.whnf wallsExpr)
 
-  let walls'' ← extractWallList 1000000 walls'
+  let walls'' ← extractWallList walls'
 
   let playerCell ← `(game_cell| @)
   let emptyCell ← `(game_cell| ░)

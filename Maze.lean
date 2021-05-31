@@ -62,14 +62,14 @@ def update_state_with_row_aux : Nat → Nat → List CellContents → GameState 
 def update_state_with_row : Nat → List CellContents → GameState → GameState
 | currentRowNum, rowContents, oldState => update_state_with_row_aux currentRowNum 0 rowContents oldState
 
--- size, current row, remaining cells -> gamestatem
+-- size, current row, remaining cells -> gamestate
 def game_state_from_cells_aux : Coords → Nat → List (List CellContents) → GameState
 | size, _, [] => ⟨size, ⟨0,0⟩, []⟩
 | size, currentRow, row::rows =>
         let prevState := game_state_from_cells_aux size (currentRow + 1) rows
         update_state_with_row currentRow row prevState
 
--- size, remaining cells -> gamestatem
+-- size, remaining cells -> gamestate
 def game_state_from_cells : Coords → List (List CellContents) → GameState
 | size, cells => game_state_from_cells_aux size 0 cells
 

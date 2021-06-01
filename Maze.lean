@@ -137,15 +137,15 @@ theorem step_west
   {x y : Nat}
   {w: List Coords}
   (hclear' : w.notElem ⟨x,y⟩)
-  (h : can_escape ⟨s,⟨x,y⟩,w⟩) :
+  (W : can_escape ⟨s,⟨x,y⟩,w⟩) :
   can_escape ⟨s,⟨x+1,y⟩,w⟩ :=
    by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x+1, y⟩,w⟩ Move.west :=
                by simp
                   have h' : x + 1 - 1 = x := rfl
                   rw [h', hclear']
                   simp
-      rw [hmm] at h
-      exact can_still_escape ⟨s,⟨x+1,y⟩,w⟩ Move.west h
+      rw [hmm] at W
+      exact can_still_escape ⟨s,⟨x+1,y⟩,w⟩ Move.west W
 
 theorem step_east
   {s: Coords}
@@ -153,29 +153,29 @@ theorem step_east
   {w: List Coords}
   (hclear' : w.notElem ⟨x+1,y⟩)
   (hinbounds : x + 1 ≤ s.x)
-  (h : can_escape ⟨s,⟨x+1,y⟩,w⟩) :
+  (E : can_escape ⟨s,⟨x+1,y⟩,w⟩) :
   can_escape ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x+1,y⟩ w = make_move ⟨s, ⟨x,y⟩,w⟩ Move.east :=
          by simp
             rw [hclear']
             simp [hinbounds]
-       rw [hmm] at h
-       exact can_still_escape ⟨s, ⟨x,y⟩, w⟩ Move.east h
+       rw [hmm] at E
+       exact can_still_escape ⟨s, ⟨x,y⟩, w⟩ Move.east E
 
 theorem step_north
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
   (hclear' : w.notElem ⟨x,y⟩)
-  (h : can_escape ⟨s,⟨x,y⟩,w⟩) :
+  (N : can_escape ⟨s,⟨x,y⟩,w⟩) :
   can_escape ⟨s,⟨x, y+1⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x, y+1⟩,w⟩ Move.north :=
          by simp
             have h' : y + 1 - 1 = y := rfl
             rw [h', hclear']
             simp
-       rw [hmm] at h
-       exact can_still_escape ⟨s,⟨x,y+1⟩,w⟩ Move.north h
+       rw [hmm] at N
+       exact can_still_escape ⟨s,⟨x,y+1⟩,w⟩ Move.north N
 
 theorem step_south
   {s: Coords}
@@ -183,14 +183,14 @@ theorem step_south
   {w: List Coords}
   (hclear' : w.notElem ⟨x,y+1⟩)
   (hinbounds : y + 1 ≤ s.y)
-  (h : can_escape ⟨s,⟨x,y+1⟩,w⟩) :
+  (S : can_escape ⟨s,⟨x,y+1⟩,w⟩) :
   can_escape ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y+1⟩ w = make_move ⟨s,⟨x, y⟩,w⟩ Move.south :=
             by simp
                rw [hclear']
                simp [hinbounds]
-       rw [hmm] at h
-       exact can_still_escape ⟨s,⟨x,y⟩,w⟩ Move.south h
+       rw [hmm] at S
+       exact can_still_escape ⟨s,⟨x,y⟩,w⟩ Move.south S
 
 def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
     ⟨[], Or.inl rfl⟩

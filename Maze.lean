@@ -210,6 +210,11 @@ macro "east" : tactic => `(apply step_east; rfl; rfl)
 macro "north" : tactic => `(apply step_north; rfl)
 macro "south" : tactic => `(apply step_south; rfl; rfl)
 
+macro "out" : tactic => `((try apply escape_north
+                           try apply escape_south
+                           try apply escape_east
+                           try apply escape_west))
+
 ---------------------------
 -- Now we will define a delaborator that will cause GameState to be rendered as a maze.
 
@@ -281,15 +286,36 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM
 
 --------------------------
 
-def maze0 := ╔═╗
-             ║@║
-             ╚═╝
+-- Can escape the trivial maze in any direction.
+example : can_escape ╔═╗
+                     ║@║
+                     ╚═╝ := by out
 
--- can escape the trivial maze in any direction
-example : can_escape maze0 := by apply escape_north
-example : can_escape maze0 := by apply escape_south
-example : can_escape maze0 := by apply escape_east
-example : can_escape maze0 := by apply escape_west
+
+-- some other mazes with immediate escapes
+example : can_escape ╔══╗
+                     ║  ║
+                     ║@ ║
+                     ║  ║
+                     ╚══╝ := by out
+example : can_escape ╔══╗
+                     ║  ║
+                     ║ @║
+                     ║  ║
+                     ╚══╝ := by out
+example : can_escape ╔═══╗
+                     ║ @ ║
+                     ║   ║
+                     ║   ║
+                     ╚═══╝ := by out
+example : can_escape ╔═══╗
+                     ║   ║
+                     ║   ║
+                     ║ @ ║
+                     ╚═══╝ := by out
+
+
+-- Now for some more interesting mazes.
 
 def maze1 := ╔══════╗
              ║▓▓▓▓▓▓║
@@ -308,7 +334,7 @@ example : can_escape maze1 := by
   east
   east
   south
-  apply escape_south
+  out
 
 def maze2 := ╔════════╗
              ║▓▓▓▓▓▓▓▓║
@@ -342,7 +368,7 @@ example : can_escape maze2 :=
     north
     north
     east
-    apply escape_east
+    out
 
 def maze3 := ╔════════════════════════════╗
              ║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║

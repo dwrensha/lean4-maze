@@ -68,8 +68,7 @@ For example, after the moves made above, the state is shown as:
 
 The main moves available to you at any point are `north`, `south`, `east`, and `west`.
 
-When you reach the boundary, you can finish your proof with one of
-`apply escape_north`, `apply escape_south`, `apply escape_east`, or `apply escape_west`.
+When you reach the boundary, you can finish your proof with `out`.
 
 ## how does it work?
 

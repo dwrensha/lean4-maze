@@ -224,7 +224,7 @@ macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
 ---------------------------
 -- Now we will define a delaborator that will cause GameState to be rendered as a maze.
 
-def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
+def extractXY : Lean.Expr → Lean.MetaM Coords
 | e => do
   let e':Lean.Expr ← (Lean.Meta.whnf e)
   let sizeArgs := Lean.Expr.getAppArgs e'
@@ -235,7 +235,7 @@ def extractXY : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM Coords
   let numRows := (Lean.Expr.natLit? y).get!
   Coords.mk numCols numRows
 
-partial def extractWallList : Lean.Expr → Lean.PrettyPrinter.Delaborator.DelabM (List Coords)
+partial def extractWallList : Lean.Expr → Lean.MetaM (List Coords)
 | exp => do
   let exp':Lean.Expr ← (Lean.Meta.whnf exp)
   let f := Lean.Expr.getAppFn exp'
@@ -257,7 +257,7 @@ def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α →
      update2dArray a' c v
 
 def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM Lean.Syntax
-| a => do `(game_row| ║ $a:game_cell* ║)
+| a => `(game_row| ║ $a:game_cell* ║)
 
 -- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
 @[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do

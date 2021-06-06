@@ -49,13 +49,13 @@ inductive CellContents where
 def update_state_with_row_aux : Nat → Nat → List CellContents → GameState → GameState
 | currentRowNum, currentColNum, [], oldState => oldState
 | currentRowNum, currentColNum, cell::contents, oldState =>
-             let oldState' := update_state_with_row_aux currentRowNum (currentColNum+1) contents oldState
-             match cell with
-             | CellContents.empty => oldState'
-             | CellContents.wall => {oldState' .. with
-                                     walls := ⟨currentColNum,currentRowNum⟩::oldState'.walls}
-             | CellContents.player => {oldState' .. with
-                                       position := ⟨currentColNum,currentRowNum⟩}
+    let oldState' := update_state_with_row_aux currentRowNum (currentColNum+1) contents oldState
+    match cell with
+    | CellContents.empty => oldState'
+    | CellContents.wall => {oldState' .. with
+                            walls := ⟨currentColNum,currentRowNum⟩::oldState'.walls}
+    | CellContents.player => {oldState' .. with
+                              position := ⟨currentColNum,currentRowNum⟩}
 
 def update_state_with_row : Nat → List CellContents → GameState → GameState
 | currentRowNum, rowContents, oldState => update_state_with_row_aux currentRowNum 0 rowContents oldState
@@ -85,10 +85,11 @@ macro_rules
 | `(╔ $tb:horizontal_border* ╗
     $rows:game_row*
     ╚ $bb:horizontal_border* ╝) =>
-      let rsize := Lean.Syntax.mkNumLit (toString rows.size) -- there's gotta be a better way to do this
-      let csize := Lean.Syntax.mkNumLit (toString tb.size) -- there's gotta be a better way to do this
-      `( game_state_from_cells ⟨$csize,$rsize⟩ ╣{$rows:game_row*}╠ )
-
+      do let rsize := Lean.Syntax.mkNumLit (toString rows.size)
+         let csize := Lean.Syntax.mkNumLit (toString tb.size)
+         if tb.size != bb.size then Lean.Macro.throwError "top/bottom border mismatch"
+         let cells ← Lean.expandMacros (← `(╣{$rows:game_row*}╠))
+         `(game_state_from_cells ⟨$csize,$rsize⟩ $cells)
 
 inductive Move where
   | east  : Move

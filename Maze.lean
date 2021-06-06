@@ -52,12 +52,10 @@ def update_state_with_row_aux : Nat → Nat → List CellContents → GameState 
              let oldState' := update_state_with_row_aux currentRowNum (currentColNum+1) contents oldState
              match cell with
              | CellContents.empty => oldState'
-             | CellContents.wall => {size     := oldState'.size,
-                                     position := oldState'.position,
-                                     walls    := ⟨currentColNum,currentRowNum⟩::oldState'.walls}
-             | CellContents.player => {size     := oldState'.size,
-                                       position := ⟨currentColNum,currentRowNum⟩,
-                                       walls    := oldState'.walls}
+             | CellContents.wall => {oldState' .. with
+                                     walls := ⟨currentColNum,currentRowNum⟩::oldState'.walls}
+             | CellContents.player => {oldState' .. with
+                                       position := ⟨currentColNum,currentRowNum⟩}
 
 def update_state_with_row : Nat → List CellContents → GameState → GameState
 | currentRowNum, rowContents, oldState => update_state_with_row_aux currentRowNum 0 rowContents oldState

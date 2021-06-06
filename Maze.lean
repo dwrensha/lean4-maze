@@ -210,10 +210,21 @@ macro "east" : tactic => `(apply step_east; rfl; rfl)
 macro "north" : tactic => `(apply step_north; rfl)
 macro "south" : tactic => `(apply step_south; rfl; rfl)
 
-macro "out" : tactic => `((try apply escape_north
-                           try apply escape_south
-                           try apply escape_east
-                           try apply escape_west))
+
+-- Define an "or" tactic combinator, like <|> in Lean 3.
+syntax (name := orTactic) tactic " ⟨|⟩ " tactic : tactic
+
+@[tactic orTactic]
+def elabOrTactic : Lean.Elab.Tactic.Tactic
+| `(tactic| $t1:tactic ⟨|⟩ $t2:tactic ) =>
+        do try Lean.Elab.Tactic.evalTactic t1
+           catch err => Lean.Elab.Tactic.evalTactic t2
+| _ => Lean.Elab.throwUnsupportedSyntax
+
+elab "fail_out" : tactic => throwError "not currently at maze boundary"
+
+macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
+                           apply escape_east ⟨|⟩ apply escape_west ⟨|⟩ fail_out)
 
 ---------------------------
 -- Now we will define a delaborator that will cause GameState to be rendered as a maze.

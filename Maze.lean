@@ -212,14 +212,9 @@ macro "south" : tactic => `(apply step_south; rfl; rfl)
 
 
 -- Define an "or" tactic combinator, like <|> in Lean 3.
-syntax (name := orTactic) tactic " ⟨|⟩ " tactic : tactic
-
-@[tactic orTactic]
-def elabOrTactic : Lean.Elab.Tactic.Tactic
-| `(tactic| $t1:tactic ⟨|⟩ $t2:tactic ) =>
-        do try Lean.Elab.Tactic.evalTactic t1
-           catch err => Lean.Elab.Tactic.evalTactic t2
-| _ => Lean.Elab.throwUnsupportedSyntax
+elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
+   do try Lean.Elab.Tactic.evalTactic t1
+      catch err => Lean.Elab.Tactic.evalTactic t2
 
 elab "fail_out" : tactic => throwError "not currently at maze boundary"
 

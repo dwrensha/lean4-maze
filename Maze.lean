@@ -246,6 +246,15 @@ partial def extractWallList : Lean.Expr → Lean.MetaM (List Coords)
        (Coords.mk wallCol wallRow) :: rest
   else [] -- "List.nil"
 
+partial def extractGameState : Lean.Expr → Lean.MetaM GameState
+| exp => do
+    let exp': Lean.Expr ← (Lean.Meta.whnf exp)
+    let gameStateArgs := Lean.Expr.getAppArgs exp'
+    let size ← extractXY gameStateArgs[0]
+    let playerCoords ← extractXY gameStateArgs[1]
+    let walls ← extractWallList gameStateArgs[2]
+    pure ⟨size, playerCoords, walls⟩
+
 def update2dArray {α : Type} : Array (Array α) → Coords → α → Array (Array α)
 | a, ⟨x,y⟩, v =>
    Array.set! a y $ Array.set! (Array.get! a y) x v
@@ -256,39 +265,42 @@ def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α →
      let a' := update2dArrayMulti a cs v
      update2dArray a' c v
 
-def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.DelabM Lean.Syntax
+def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.Delab
 | a => `(game_row| ║ $a:game_cell* ║)
 
+def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
+| e =>
+  do guard $ e.getAppNumArgs == 3
+     let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ← extractGameState e
+
+     let topBarCell ← `(horizontal_border| ═)
+     let topBar := Array.mkArray numCols topBarCell
+     let playerCell ← `(game_cell| @)
+     let emptyCell ← `(game_cell| ░)
+     let wallCell ← `(game_cell| ▓)
+     let emptyRow := Array.mkArray numCols emptyCell
+     let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)
+     let allRows := Array.mkArray numRows emptyRowStx
+
+     let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
+     let a1 := update2dArray a0 playerCoords playerCell
+     let a2 := update2dArrayMulti a1 walls wallCell
+     let aa ← Array.mapM delabGameRow a2
+
+     `(╔$topBar:horizontal_border*╗
+       $aa:game_row*
+       ╚$topBar:horizontal_border*╝)
+
 -- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
-@[delab app.GameState.mk] def delabGameState : Lean.PrettyPrinter.Delaborator.Delab := do
+@[delab app.GameState.mk] def delabGameStateMk : Lean.PrettyPrinter.Delaborator.Delab := do
   let e ← Lean.PrettyPrinter.Delaborator.getExpr
-  let e' ← (Lean.Meta.whnf e)
-  guard $ e'.getAppNumArgs == 3
-  let gameStateArgs := Lean.Expr.getAppArgs e'
-  let ⟨numCols, numRows⟩ ← extractXY gameStateArgs[0]
-  let playerCoords ← extractXY gameStateArgs[1]
-  let walls'' ← extractWallList gameStateArgs[2]
-
-  let topBarCell ← `(horizontal_border| ═)
-  let topBar := Array.mkArray numCols topBarCell
-  let playerCell ← `(game_cell| @)
-  let emptyCell ← `(game_cell| ░)
-  let wallCell ← `(game_cell| ▓)
-  let emptyRow := Array.mkArray numCols emptyCell
-  let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)
-  let allRows := Array.mkArray numRows emptyRowStx
-
-  let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
-  let a1 := update2dArray a0 playerCoords playerCell
-  let a2 := update2dArrayMulti a1 walls'' wallCell
-  let aa ← Array.mapM delabGameRow a2
-
-  `(╔$topBar:horizontal_border*╗
-    $aa:game_row*
-    ╚$topBar:horizontal_border*╝)
+  delabGameState e
 
 -- We register the same elaborator for applications of the game_state_from_cells function.
-@[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab := delabGameState
+@[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab :=
+  do let e ← Lean.PrettyPrinter.Delaborator.getExpr
+     let e' ← (Lean.Meta.whnf e)
+     delabGameState e'
 
 --------------------------
 
@@ -300,24 +312,24 @@ example : can_escape ╔═╗
 
 -- some other mazes with immediate escapes
 example : can_escape ╔══╗
-                     ║  ║
-                     ║@ ║
-                     ║  ║
+                     ║░░║
+                     ║@░║
+                     ║░░║
                      ╚══╝ := by out
 example : can_escape ╔══╗
-                     ║  ║
-                     ║ @║
-                     ║  ║
+                     ║░░║
+                     ║░@║
+                     ║░░║
                      ╚══╝ := by out
 example : can_escape ╔═══╗
-                     ║ @ ║
-                     ║   ║
-                     ║   ║
+                     ║░@░║
+                     ║░░░║
+                     ║░░░║
                      ╚═══╝ := by out
 example : can_escape ╔═══╗
-                     ║   ║
-                     ║   ║
-                     ║ @ ║
+                     ║░░░║
+                     ║░░░║
+                     ║░@░║
                      ╚═══╝ := by out
 
 
@@ -398,3 +410,4 @@ example : can_escape maze3 :=
     west
     south
     admit -- can you finish the proof?
+

@@ -22,8 +22,9 @@ syntax "║" game_cell* "║\n" : game_row
 syntax:max game_top_row game_row* game_bottom_row : term
 
 -- helper syntax for intermediate parser values
-syntax "╣{" game_row* "}╠" : term
-syntax "╣" game_cell* "╠" : term
+syntax "╣{" game_row* "}╠" : term -- list of list of game cells
+syntax "╣" game_cell* "╠"  : term -- list of game cells
+syntax "┤" game_cell "├"   : term -- single game cell
 
 -- x is column number
 -- y is row number
@@ -72,10 +73,13 @@ def game_state_from_cells : Coords → List (List CellContents) → GameState
 | size, cells => game_state_from_cells_aux size 0 cells
 
 macro_rules
+| `(┤░├) => `(CellContents.empty)
+| `(┤▓├) => `(CellContents.wall)
+| `(┤@├) => `(CellContents.player)
+
+macro_rules
 | `(╣╠) => `(([] : List CellContents))
-| `(╣░ $cells:game_cell*╠) => `(CellContents.empty :: ╣$cells:game_cell*╠)
-| `(╣▓ $cells:game_cell*╠) => `(CellContents.wall :: ╣$cells:game_cell*╠)
-| `(╣@ $cells:game_cell*╠) => `(CellContents.player :: ╣$cells:game_cell*╠)
+| `(╣$cell:game_cell $cells:game_cell*╠) => `(┤$cell:game_cell├:: ╣$cells:game_cell*╠)
 
 macro_rules
 | `(╣{}╠) => `(([] : List (List CellContents)))

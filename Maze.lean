@@ -21,11 +21,6 @@ syntax "║" game_cell* "║\n" : game_row
 
 syntax:max game_top_row game_row* game_bottom_row : term
 
--- helper syntax for intermediate parser values
-syntax "╣{" game_row* "}╠" : term -- list of list of game cells
-syntax "╣" game_cell* "╠"  : term -- list of game cells
-syntax "┤" game_cell "├"   : term -- single game cell
-
 -- x is column number
 -- y is row number
 -- upper left is ⟨0,0⟩
@@ -72,18 +67,17 @@ def game_state_from_cells_aux : Coords → Nat → List (List CellContents) → 
 def game_state_from_cells : Coords → List (List CellContents) → GameState
 | size, cells => game_state_from_cells_aux size 0 cells
 
-macro_rules
-| `(┤░├) => `(CellContents.empty)
-| `(┤▓├) => `(CellContents.wall)
-| `(┤@├) => `(CellContents.player)
+def termOfCell : Lean.Macro
+| `(game_cell| ░) => `(CellContents.empty)
+| `(game_cell| ▓) => `(CellContents.wall)
+| `(game_cell| @) => `(CellContents.player)
+| _ => Lean.Macro.throwError "unknown game cell"
 
-macro_rules
-| `(╣╠) => `(([] : List CellContents))
-| `(╣$cell:game_cell $cells:game_cell*╠) => `(┤$cell:game_cell├:: ╣$cells:game_cell*╠)
-
-macro_rules
-| `(╣{}╠) => `(([] : List (List CellContents)))
-| `(╣{ ║$cells:game_cell*║  $rows:game_row*}╠) => `(╣$cells:game_cell*╠ :: ╣{$rows:game_row*}╠)
+def termOfGameRow : Lean.Macro
+| `(game_row| ║$cells:game_cell*║) =>
+      do let cells' ← Array.mapM termOfCell cells
+         `([$cells',*])
+| _ => Lean.Macro.throwError "unknown game row"
 
 macro_rules
 | `(╔ $tb:horizontal_border* ╗
@@ -92,8 +86,8 @@ macro_rules
       do let rsize := Lean.Syntax.mkNumLit (toString rows.size)
          let csize := Lean.Syntax.mkNumLit (toString tb.size)
          if tb.size != bb.size then Lean.Macro.throwError "top/bottom border mismatch"
-         let cells ← Lean.expandMacros (← `(╣{$rows:game_row*}╠))
-         `(game_state_from_cells ⟨$csize,$rsize⟩ $cells)
+         let rows' ← Array.mapM termOfGameRow rows
+         `(game_state_from_cells ⟨$csize,$rsize⟩ [$rows',*])
 
 inductive Move where
   | east  : Move

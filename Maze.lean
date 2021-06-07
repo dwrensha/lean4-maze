@@ -73,11 +73,13 @@ def termOfCell : Lean.Macro
 | `(game_cell| @) => `(CellContents.player)
 | _ => Lean.Macro.throwError "unknown game cell"
 
-def termOfGameRow : Lean.Macro
-| `(game_row| ║$cells:game_cell*║) =>
-      do let cells' ← Array.mapM termOfCell cells
+def termOfGameRow : Nat → Lean.Macro
+| expectedRowSize, `(game_row| ║$cells:game_cell*║) =>
+      do if cells.size != expectedRowSize
+         then Lean.Macro.throwError "row has wrong size"
+         let cells' ← Array.mapM termOfCell cells
          `([$cells',*])
-| _ => Lean.Macro.throwError "unknown game row"
+| _, _ => Lean.Macro.throwError "unknown game row"
 
 macro_rules
 | `(╔ $tb:horizontal_border* ╗
@@ -86,7 +88,7 @@ macro_rules
       do let rsize := Lean.Syntax.mkNumLit (toString rows.size)
          let csize := Lean.Syntax.mkNumLit (toString tb.size)
          if tb.size != bb.size then Lean.Macro.throwError "top/bottom border mismatch"
-         let rows' ← Array.mapM termOfGameRow rows
+         let rows' ← Array.mapM (termOfGameRow tb.size) rows
          `(game_state_from_cells ⟨$csize,$rsize⟩ [$rows',*])
 
 inductive Move where

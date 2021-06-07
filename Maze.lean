@@ -7,17 +7,17 @@ declare_syntax_cat horizontal_border
 declare_syntax_cat game_top_row
 declare_syntax_cat game_bottom_row
 
-syntax "═" : horizontal_border
+syntax "─" : horizontal_border
 
-syntax "\n╔" horizontal_border* "╗\n" : game_top_row
+syntax "\n╭" horizontal_border* "╮\n" : game_top_row
 
-syntax "╚" horizontal_border* "╝\n" : game_bottom_row
+syntax "╰" horizontal_border* "╯\n" : game_bottom_row
 
 syntax "░" : game_cell -- empty
 syntax "▓" : game_cell -- wall
 syntax "@" : game_cell -- player
 
-syntax "║" game_cell* "║\n" : game_row
+syntax "│" game_cell* "│\n" : game_row
 
 syntax:max game_top_row game_row* game_bottom_row : term
 
@@ -74,7 +74,7 @@ def termOfCell : Lean.Macro
 | _ => Lean.Macro.throwError "unknown game cell"
 
 def termOfGameRow : Nat → Lean.Macro
-| expectedRowSize, `(game_row| ║$cells:game_cell*║) =>
+| expectedRowSize, `(game_row| │$cells:game_cell*│) =>
       do if cells.size != expectedRowSize
          then Lean.Macro.throwError "row has wrong size"
          let cells' ← Array.mapM termOfCell cells
@@ -82,9 +82,9 @@ def termOfGameRow : Nat → Lean.Macro
 | _, _ => Lean.Macro.throwError "unknown game row"
 
 macro_rules
-| `(╔ $tb:horizontal_border* ╗
+| `(╭ $tb:horizontal_border* ╮
     $rows:game_row*
-    ╚ $bb:horizontal_border* ╝) =>
+    ╰ $bb:horizontal_border* ╯) =>
       do let rsize := Lean.Syntax.mkNumLit (toString rows.size)
          let csize := Lean.Syntax.mkNumLit (toString tb.size)
          if tb.size != bb.size then Lean.Macro.throwError "top/bottom border mismatch"
@@ -265,20 +265,20 @@ def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α →
      update2dArray a' c v
 
 def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.Delab
-| a => `(game_row| ║ $a:game_cell* ║)
+| a => `(game_row| │ $a:game_cell* │)
 
 def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
 | e =>
   do guard $ e.getAppNumArgs == 3
      let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ← extractGameState e
 
-     let topBarCell ← `(horizontal_border| ═)
+     let topBarCell ← `(horizontal_border| ─)
      let topBar := Array.mkArray numCols topBarCell
      let playerCell ← `(game_cell| @)
      let emptyCell ← `(game_cell| ░)
      let wallCell ← `(game_cell| ▓)
      let emptyRow := Array.mkArray numCols emptyCell
-     let emptyRowStx ← `(game_row|║$emptyRow:game_cell*║)
+     let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
      let allRows := Array.mkArray numRows emptyRowStx
 
      let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
@@ -286,9 +286,9 @@ def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
      let a2 := update2dArrayMulti a1 walls wallCell
      let aa ← Array.mapM delabGameRow a2
 
-     `(╔$topBar:horizontal_border*╗
+     `(╭$topBar:horizontal_border*╮
        $aa:game_row*
-       ╚$topBar:horizontal_border*╝)
+       ╰$topBar:horizontal_border*╯)
 
 -- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
 @[delab app.GameState.mk] def delabGameStateMk : Lean.PrettyPrinter.Delaborator.Delab := do
@@ -304,43 +304,43 @@ def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
 --------------------------
 
 -- Can escape the trivial maze in any direction.
-example : can_escape ╔═╗
-                     ║@║
-                     ╚═╝ := by out
+example : can_escape ╭─╮
+                     │@│
+                     ╰─╯ := by out
 
 
 -- some other mazes with immediate escapes
-example : can_escape ╔══╗
-                     ║░░║
-                     ║@░║
-                     ║░░║
-                     ╚══╝ := by out
-example : can_escape ╔══╗
-                     ║░░║
-                     ║░@║
-                     ║░░║
-                     ╚══╝ := by out
-example : can_escape ╔═══╗
-                     ║░@░║
-                     ║░░░║
-                     ║░░░║
-                     ╚═══╝ := by out
-example : can_escape ╔═══╗
-                     ║░░░║
-                     ║░░░║
-                     ║░@░║
-                     ╚═══╝ := by out
+example : can_escape ╭──╮
+                     │░░│
+                     │@░│
+                     │░░│
+                     ╰──╯ := by out
+example : can_escape ╭──╮
+                     │░░│
+                     │░@│
+                     │░░│
+                     ╰──╯ := by out
+example : can_escape ╭───╮
+                     │░@░│
+                     │░░░│
+                     │░░░│
+                     ╰───╯ := by out
+example : can_escape ╭───╮
+                     │░░░│
+                     │░░░│
+                     │░@░│
+                     ╰───╯ := by out
 
 
 -- Now for some more interesting mazes.
 
-def maze1 := ╔══════╗
-             ║▓▓▓▓▓▓║
-             ║▓░░@░▓║
-             ║▓░░░░▓║
-             ║▓░░░░▓║
-             ║▓▓▓▓░▓║
-             ╚══════╝
+def maze1 := ╭──────╮
+             │▓▓▓▓▓▓│
+             │▓░░@░▓│
+             │▓░░░░▓│
+             │▓░░░░▓│
+             │▓▓▓▓░▓│
+             ╰──────╯
 
 example : can_escape maze1 := by
   west
@@ -353,17 +353,17 @@ example : can_escape maze1 := by
   south
   out
 
-def maze2 := ╔════════╗
-             ║▓▓▓▓▓▓▓▓║
-             ║▓░▓@▓░▓▓║
-             ║▓░▓░░░▓▓║
-             ║▓░░▓░▓▓▓║
-             ║▓▓░▓░▓░░║
-             ║▓░░░░▓░▓║
-             ║▓░▓▓▓▓░▓║
-             ║▓░░░░░░▓║
-             ║▓▓▓▓▓▓▓▓║
-             ╚════════╝
+def maze2 := ╭────────╮
+             │▓▓▓▓▓▓▓▓│
+             │▓░▓@▓░▓▓│
+             │▓░▓░░░▓▓│
+             │▓░░▓░▓▓▓│
+             │▓▓░▓░▓░░│
+             │▓░░░░▓░▓│
+             │▓░▓▓▓▓░▓│
+             │▓░░░░░░▓│
+             │▓▓▓▓▓▓▓▓│
+             ╰────────╯
 
 example : can_escape maze2 :=
  by south
@@ -387,21 +387,21 @@ example : can_escape maze2 :=
     east
     out
 
-def maze3 := ╔════════════════════════════╗
-             ║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║
-             ║▓░░░░░░░░░░░░░░░░░░░░▓░░░@░▓║
-             ║▓░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░▓░▓▓▓▓▓║
-             ║▓░▓░░░▓░░░░▓░░░░░░░░░▓░▓░░░▓║
-             ║▓░▓░▓░▓░▓▓▓▓░▓▓▓▓▓▓▓▓▓░▓░▓░▓║
-             ║▓░▓░▓░▓░▓░░░░▓░░░░░░░░░░░▓░▓║
-             ║▓░▓░▓░▓░▓░▓▓▓▓▓▓▓▓▓▓▓▓░▓▓▓░▓║
-             ║▓░▓░▓░▓░░░▓░░░░░░░░░░▓░░░▓░▓║
-             ║▓░▓░▓░▓▓▓░▓░▓▓▓▓▓▓▓▓▓▓░▓░▓░▓║
-             ║▓░▓░▓░░░░░▓░░░░░░░░░░░░▓░▓░▓║
-             ║▓░▓░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░▓║
-             ║░░▓░░░░░░░░░░░░░░░░░░░░░░░░▓║
-             ║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║
-             ╚════════════════════════════╝
+def maze3 := ╭────────────────────────────╮
+             │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
+             │▓░░░░░░░░░░░░░░░░░░░░▓░░░@░▓│
+             │▓░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░▓░▓▓▓▓▓│
+             │▓░▓░░░▓░░░░▓░░░░░░░░░▓░▓░░░▓│
+             │▓░▓░▓░▓░▓▓▓▓░▓▓▓▓▓▓▓▓▓░▓░▓░▓│
+             │▓░▓░▓░▓░▓░░░░▓░░░░░░░░░░░▓░▓│
+             │▓░▓░▓░▓░▓░▓▓▓▓▓▓▓▓▓▓▓▓░▓▓▓░▓│
+             │▓░▓░▓░▓░░░▓░░░░░░░░░░▓░░░▓░▓│
+             │▓░▓░▓░▓▓▓░▓░▓▓▓▓▓▓▓▓▓▓░▓░▓░▓│
+             │▓░▓░▓░░░░░▓░░░░░░░░░░░░▓░▓░▓│
+             │▓░▓░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░▓│
+             │░░▓░░░░░░░░░░░░░░░░░░░░░░░░▓│
+             │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
+             ╰────────────────────────────╯
 
 example : can_escape maze3 :=
  by west

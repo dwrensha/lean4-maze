@@ -203,22 +203,22 @@ def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx
 def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
--- the `rfl`s are to discharge the `hclear` and `hinbounds` side-goals
-macro "west" : tactic => `(apply step_west; rfl)
-macro "east" : tactic => `(apply step_east; rfl; rfl)
-macro "north" : tactic => `(apply step_north; rfl)
-macro "south" : tactic => `(apply step_south; rfl; rfl)
-
-
 -- Define an "or" tactic combinator, like <|> in Lean 3.
 elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
    do try Lean.Elab.Tactic.evalTactic t1
       catch err => Lean.Elab.Tactic.evalTactic t2
 
-elab "fail_out" : tactic => throwError "not currently at maze boundary"
+elab "fail" m:term  : tactic => throwError m
+
+-- the `rfl`s are to discharge the `hclear` and `hinbounds` side-goals
+macro "west" : tactic => `((apply step_west; rfl)        ⟨|⟩ fail "cannot step west")
+macro "east" : tactic => `((apply step_east; rfl; rfl)   ⟨|⟩ fail "cannot step east")
+macro "north" : tactic => `((apply step_north; rfl)      ⟨|⟩ fail "cannot step north")
+macro "south" : tactic => `((apply step_south; rfl; rfl) ⟨|⟩ fail "cannot step south")
 
 macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
-                           apply escape_east ⟨|⟩ apply escape_west ⟨|⟩ fail_out)
+                           apply escape_east ⟨|⟩ apply escape_west ⟨|⟩
+                           fail "not currently at maze boundary")
 
 ---------------------------
 -- Now we will define a delaborator that will cause GameState to be rendered as a maze.

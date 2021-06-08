@@ -139,10 +139,8 @@ theorem step_west
   (W : can_escape ⟨s,⟨x,y⟩,w⟩) :
   can_escape ⟨s,⟨x+1,y⟩,w⟩ :=
    by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x+1, y⟩,w⟩ Move.west :=
-               by simp
-                  have h' : x + 1 - 1 = x := rfl
-                  rw [h', hclear']
-                  simp
+               by have h' : x + 1 - 1 = x := rfl
+                  simp [h', hclear']
       rw [hmm] at W
       exact can_still_escape ⟨s,⟨x+1,y⟩,w⟩ Move.west W
 
@@ -155,9 +153,7 @@ theorem step_east
   (E : can_escape ⟨s,⟨x+1,y⟩,w⟩) :
   can_escape ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x+1,y⟩ w = make_move ⟨s, ⟨x,y⟩,w⟩ Move.east :=
-         by simp
-            rw [hclear']
-            simp [hinbounds]
+         by simp [hclear', hinbounds]
        rw [hmm] at E
        exact can_still_escape ⟨s, ⟨x,y⟩, w⟩ Move.east E
 
@@ -169,10 +165,8 @@ theorem step_north
   (N : can_escape ⟨s,⟨x,y⟩,w⟩) :
   can_escape ⟨s,⟨x, y+1⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x, y+1⟩,w⟩ Move.north :=
-         by simp
-            have h' : y + 1 - 1 = y := rfl
-            rw [h', hclear']
-            simp
+         by have h' : y + 1 - 1 = y := rfl
+            simp [h', hclear']
        rw [hmm] at N
        exact can_still_escape ⟨s,⟨x,y+1⟩,w⟩ Move.north N
 
@@ -185,9 +179,7 @@ theorem step_south
   (S : can_escape ⟨s,⟨x,y+1⟩,w⟩) :
   can_escape ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y+1⟩ w = make_move ⟨s,⟨x, y⟩,w⟩ Move.south :=
-            by simp
-               rw [hclear']
-               simp [hinbounds]
+            by simp [hclear', hinbounds]
        rw [hmm] at S
        exact can_still_escape ⟨s,⟨x,y⟩,w⟩ Move.south S
 

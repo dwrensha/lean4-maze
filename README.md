@@ -16,7 +16,7 @@ Then open `Maze.lean` in emacs or VSCode.
 You can define a maze like this:
 
 ```lean
-def maze := ╭────────╮
+def maze := ┌────────┐
             │▓▓▓▓▓▓▓▓│
             │▓░▓@▓░▓▓│
             │▓░▓░░░▓▓│
@@ -26,7 +26,7 @@ def maze := ╭────────╮
             │▓░▓▓▓▓░▓│
             │▓░░░░░░▓│
             │▓▓▓▓▓▓▓▓│
-            ╰────────╯
+            └────────┘
 ```
 
 The `@` symbol denotes your current location.
@@ -52,7 +52,7 @@ For example, after the moves made above, the state is shown as:
 ```lean
 ⊢ can_escape
     (
-        ╭────────╮
+        ┌────────┐
         │▓▓▓▓▓▓▓▓│
         │▓░▓░▓░▓▓│
         │▓░▓░░░▓▓│
@@ -62,7 +62,7 @@ For example, after the moves made above, the state is shown as:
         │▓░▓▓▓▓░▓│
         │▓░░░░░░▓│
         │▓▓▓▓▓▓▓▓│
-        ╰────────╯
+        └────────┘
         )
 ```
 

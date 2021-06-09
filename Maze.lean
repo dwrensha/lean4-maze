@@ -143,28 +143,27 @@ def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.Delab
 def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
 | e =>
   do guard $ e.getAppNumArgs == 3
-     try
-       let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ← extractGameState e
+     let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ←
+       try extractGameState e
+       catch err => failure -- can happen if game state has variables in it
 
-       let topBarCell ← `(horizontal_border| ─)
-       let topBar := Array.mkArray numCols topBarCell
-       let playerCell ← `(game_cell| @)
-       let emptyCell ← `(game_cell| ░)
-       let wallCell ← `(game_cell| ▓)
-       let emptyRow := Array.mkArray numCols emptyCell
-       let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
-       let allRows := Array.mkArray numRows emptyRowStx
+     let topBarCell ← `(horizontal_border| ─)
+     let topBar := Array.mkArray numCols topBarCell
+     let playerCell ← `(game_cell| @)
+     let emptyCell ← `(game_cell| ░)
+     let wallCell ← `(game_cell| ▓)
+     let emptyRow := Array.mkArray numCols emptyCell
+     let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
+     let allRows := Array.mkArray numRows emptyRowStx
 
-       let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
-       let a1 := update2dArray a0 playerCoords playerCell
-       let a2 := update2dArrayMulti a1 walls wallCell
-       let aa ← Array.mapM delabGameRow a2
+     let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
+     let a1 := update2dArray a0 playerCoords playerCell
+     let a2 := update2dArrayMulti a1 walls wallCell
+     let aa ← Array.mapM delabGameRow a2
 
-       `(┌$topBar:horizontal_border*┐
-         $aa:game_row*
-         └$topBar:horizontal_border*┘)
-     catch err =>
-       failure -- can happen if game state has variables in it
+     `(┌$topBar:horizontal_border*┐
+       $aa:game_row*
+       └$topBar:horizontal_border*┘)
 
 -- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
 @[delab app.GameState.mk] def delabGameStateMk : Lean.PrettyPrinter.Delaborator.Delab := do

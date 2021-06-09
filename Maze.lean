@@ -1,5 +1,23 @@
 import Lean
 
+-- x is column number
+-- y is row number
+-- upper left is ⟨0,0⟩
+structure Coords where
+  x : Nat
+  y : Nat
+deriving BEq
+
+instance : ToString Coords where
+  toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
+
+structure GameState where
+  size : Coords
+  position : Coords
+  walls : List Coords
+
+-- We define custom syntax for GameState.
+
 declare_syntax_cat game_cell
 declare_syntax_cat game_cell_sequence
 declare_syntax_cat game_row
@@ -20,22 +38,6 @@ syntax "@" : game_cell -- player
 syntax "│" game_cell* "│\n" : game_row
 
 syntax:max game_top_row game_row* game_bottom_row : term
-
--- x is column number
--- y is row number
--- upper left is ⟨0,0⟩
-structure Coords where
-  x : Nat
-  y : Nat
-deriving BEq
-
-instance : ToString Coords where
-  toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
-
-structure GameState where
-  size : Coords
-  position : Coords
-  walls: List Coords
 
 inductive CellContents where
   | empty  : CellContents
@@ -90,6 +92,92 @@ macro_rules
          if tb.size != bb.size then Lean.Macro.throwError "top/bottom border mismatch"
          let rows' ← Array.mapM (termOfGameRow tb.size) rows
          `(game_state_from_cells ⟨$csize,$rsize⟩ [$rows',*])
+
+---------------------------
+-- Now we define a delaborator that will cause GameState to be rendered as a maze.
+
+def extractXY : Lean.Expr → Lean.MetaM Coords
+| e => do
+  let e':Lean.Expr ← (Lean.Meta.whnf e)
+  let sizeArgs := Lean.Expr.getAppArgs e'
+  let f := Lean.Expr.getAppFn e'
+  let x ← Lean.Meta.whnf sizeArgs[0]
+  let y ← Lean.Meta.whnf sizeArgs[1]
+  let numCols := (Lean.Expr.natLit? x).get!
+  let numRows := (Lean.Expr.natLit? y).get!
+  Coords.mk numCols numRows
+
+partial def extractWallList : Lean.Expr → Lean.MetaM (List Coords)
+| exp => do
+  let exp':Lean.Expr ← (Lean.Meta.whnf exp)
+  let f := Lean.Expr.getAppFn exp'
+  if f.constName!.toString == "List.cons"
+  then let consArgs := Lean.Expr.getAppArgs exp'
+       let rest ← extractWallList consArgs[2]
+       let ⟨wallCol, wallRow⟩ ← extractXY consArgs[1]
+       (Coords.mk wallCol wallRow) :: rest
+  else [] -- "List.nil"
+
+partial def extractGameState : Lean.Expr → Lean.MetaM GameState
+| exp => do
+    let exp': Lean.Expr ← (Lean.Meta.whnf exp)
+    let gameStateArgs := Lean.Expr.getAppArgs exp'
+    let size ← extractXY gameStateArgs[0]
+    let playerCoords ← extractXY gameStateArgs[1]
+    let walls ← extractWallList gameStateArgs[2]
+    pure ⟨size, playerCoords, walls⟩
+
+def update2dArray {α : Type} : Array (Array α) → Coords → α → Array (Array α)
+| a, ⟨x,y⟩, v =>
+   Array.set! a y $ Array.set! (Array.get! a y) x v
+
+def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α → Array (Array α)
+| a, [], v => a
+| a, c::cs, v =>
+     let a' := update2dArrayMulti a cs v
+     update2dArray a' c v
+
+def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.Delab
+| a => `(game_row| │ $a:game_cell* │)
+
+def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
+| e =>
+  do guard $ e.getAppNumArgs == 3
+     try
+       let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ← extractGameState e
+
+       let topBarCell ← `(horizontal_border| ─)
+       let topBar := Array.mkArray numCols topBarCell
+       let playerCell ← `(game_cell| @)
+       let emptyCell ← `(game_cell| ░)
+       let wallCell ← `(game_cell| ▓)
+       let emptyRow := Array.mkArray numCols emptyCell
+       let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
+       let allRows := Array.mkArray numRows emptyRowStx
+
+       let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
+       let a1 := update2dArray a0 playerCoords playerCell
+       let a2 := update2dArrayMulti a1 walls wallCell
+       let aa ← Array.mapM delabGameRow a2
+
+       `(┌$topBar:horizontal_border*┐
+         $aa:game_row*
+         └$topBar:horizontal_border*┘)
+     catch err =>
+       failure -- can happen if game state has variables in it
+
+-- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
+@[delab app.GameState.mk] def delabGameStateMk : Lean.PrettyPrinter.Delaborator.Delab := do
+  let e ← Lean.PrettyPrinter.Delaborator.getExpr
+  delabGameState e
+
+-- We register the same elaborator for applications of the game_state_from_cells function.
+@[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab :=
+  do let e ← Lean.PrettyPrinter.Delaborator.getExpr
+     let e' ← (Lean.Meta.whnf e)
+     delabGameState e'
+
+--------------------------
 
 inductive Move where
   | east  : Move
@@ -211,89 +299,6 @@ macro "south" : tactic => `((apply step_south; rfl; rfl) ⟨|⟩ fail "cannot st
 macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
                            apply escape_east ⟨|⟩ apply escape_west ⟨|⟩
                            fail "not currently at maze boundary")
-
----------------------------
--- Now we will define a delaborator that will cause GameState to be rendered as a maze.
-
-def extractXY : Lean.Expr → Lean.MetaM Coords
-| e => do
-  let e':Lean.Expr ← (Lean.Meta.whnf e)
-  let sizeArgs := Lean.Expr.getAppArgs e'
-  let f := Lean.Expr.getAppFn e'
-  let x ← Lean.Meta.whnf sizeArgs[0]
-  let y ← Lean.Meta.whnf sizeArgs[1]
-  let numCols := (Lean.Expr.natLit? x).get!
-  let numRows := (Lean.Expr.natLit? y).get!
-  Coords.mk numCols numRows
-
-partial def extractWallList : Lean.Expr → Lean.MetaM (List Coords)
-| exp => do
-  let exp':Lean.Expr ← (Lean.Meta.whnf exp)
-  let f := Lean.Expr.getAppFn exp'
-  if f.constName!.toString == "List.cons"
-  then let consArgs := Lean.Expr.getAppArgs exp'
-       let rest ← extractWallList consArgs[2]
-       let ⟨wallCol, wallRow⟩ ← extractXY consArgs[1]
-       (Coords.mk wallCol wallRow) :: rest
-  else [] -- "List.nil"
-
-partial def extractGameState : Lean.Expr → Lean.MetaM GameState
-| exp => do
-    let exp': Lean.Expr ← (Lean.Meta.whnf exp)
-    let gameStateArgs := Lean.Expr.getAppArgs exp'
-    let size ← extractXY gameStateArgs[0]
-    let playerCoords ← extractXY gameStateArgs[1]
-    let walls ← extractWallList gameStateArgs[2]
-    pure ⟨size, playerCoords, walls⟩
-
-def update2dArray {α : Type} : Array (Array α) → Coords → α → Array (Array α)
-| a, ⟨x,y⟩, v =>
-   Array.set! a y $ Array.set! (Array.get! a y) x v
-
-def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α → Array (Array α)
-| a, [], v => a
-| a, c::cs, v =>
-     let a' := update2dArrayMulti a cs v
-     update2dArray a' c v
-
-def delabGameRow : (Array Lean.Syntax) → Lean.PrettyPrinter.Delaborator.Delab
-| a => `(game_row| │ $a:game_cell* │)
-
-def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
-| e =>
-  do guard $ e.getAppNumArgs == 3
-     let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ← extractGameState e
-
-     let topBarCell ← `(horizontal_border| ─)
-     let topBar := Array.mkArray numCols topBarCell
-     let playerCell ← `(game_cell| @)
-     let emptyCell ← `(game_cell| ░)
-     let wallCell ← `(game_cell| ▓)
-     let emptyRow := Array.mkArray numCols emptyCell
-     let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
-     let allRows := Array.mkArray numRows emptyRowStx
-
-     let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
-     let a1 := update2dArray a0 playerCoords playerCell
-     let a2 := update2dArrayMulti a1 walls wallCell
-     let aa ← Array.mapM delabGameRow a2
-
-     `(┌$topBar:horizontal_border*┐
-       $aa:game_row*
-       └$topBar:horizontal_border*┘)
-
--- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
-@[delab app.GameState.mk] def delabGameStateMk : Lean.PrettyPrinter.Delaborator.Delab := do
-  let e ← Lean.PrettyPrinter.Delaborator.getExpr
-  delabGameState e
-
--- We register the same elaborator for applications of the game_state_from_cells function.
-@[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab :=
-  do let e ← Lean.PrettyPrinter.Delaborator.getExpr
-     let e' ← (Lean.Meta.whnf e)
-     delabGameState e'
-
---------------------------
 
 -- Can escape the trivial maze in any direction.
 example : can_escape ┌─┐

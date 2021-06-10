@@ -1,20 +1,18 @@
 import Lean
 
--- x is column number
--- y is row number
--- upper left is ⟨0,0⟩
+-- Coordinates in a two dimensional grid. ⟨0,0⟩ is the upper left.
 structure Coords where
-  x : Nat
-  y : Nat
+  x : Nat -- column number
+  y : Nat -- row number
 deriving BEq
 
 instance : ToString Coords where
   toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
 
 structure GameState where
-  size : Coords
-  position : Coords
-  walls : List Coords
+  size     : Coords      -- number of rows and columns in the maze
+  position : Coords      -- row and column of the player
+  walls    : List Coords -- maze cells that are not traversible
 
 -- We define custom syntax for GameState.
 
@@ -41,7 +39,7 @@ syntax:max game_top_row game_row* game_bottom_row : term
 
 inductive CellContents where
   | empty  : CellContents
-  | wall  : CellContents
+  | wall   : CellContents
   | player : CellContents
 
 def update_state_with_row_aux : Nat → Nat → List CellContents → GameState → GameState

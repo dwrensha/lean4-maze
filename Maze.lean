@@ -10,7 +10,7 @@ instance : ToString Coords where
   toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
 
 structure GameState where
-  size     : Coords      -- number of rows and columns in the maze
+  size     : Coords      -- coordinates of bottom-right cell
   position : Coords      -- row and column of the player
   walls    : List Coords -- maze cells that are not traversible
 
@@ -145,18 +145,15 @@ def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
        try extractGameState e
        catch err => failure -- can happen if game state has variables in it
 
-     let topBarCell ← `(horizontal_border| ─)
-     let topBar := Array.mkArray numCols topBarCell
-     let playerCell ← `(game_cell| @)
+     let topBar := Array.mkArray numCols $ ← `(horizontal_border| ─)
      let emptyCell ← `(game_cell| ░)
-     let wallCell ← `(game_cell| ▓)
      let emptyRow := Array.mkArray numCols emptyCell
      let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
      let allRows := Array.mkArray numRows emptyRowStx
 
      let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
-     let a1 := update2dArray a0 playerCoords playerCell
-     let a2 := update2dArrayMulti a1 walls wallCell
+     let a1 := update2dArray a0 playerCoords $ ← `(game_cell| @)
+     let a2 := update2dArrayMulti a1 walls $ ← `(game_cell| ▓)
      let aa ← Array.mapM delabGameRow a2
 
      `(┌$topBar:horizontal_border*┐
@@ -282,8 +279,8 @@ def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,�
 
 -- Define an "or" tactic combinator, like <|> in Lean 3.
 elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
-   do try Lean.Elab.Tactic.evalTactic t1
-      catch err => Lean.Elab.Tactic.evalTactic t2
+   try Lean.Elab.Tactic.evalTactic t1
+   catch err => Lean.Elab.Tactic.evalTactic t2
 
 elab "fail" m:term  : tactic => throwError m
 

@@ -206,12 +206,7 @@ def can_escape (state : GameState) : Prop :=
 
 theorem can_still_escape (g : GameState) (m : Move) (hg : can_escape (make_move g m)) : can_escape g :=
  have ⟨pms, hpms⟩ := hg
- Exists.intro
-  (m::pms)
-  (by have h' : List.foldl make_move g (m :: pms) =
-                     List.foldl make_move (make_move g m) pms := rfl
-      rw [h']
-      exact hpms)
+ Exists.intro (m::pms) hpms
 
 theorem step_west
   {s: Coords}
@@ -400,4 +395,3 @@ example : can_escape maze3 :=
     west
     south
     admit -- can you finish the proof?
-

@@ -162,12 +162,12 @@ def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
 
 -- The attribute [delab] registers this function as a delaborator for the GameState.mk constructor.
 @[delab app.GameState.mk] def delabGameStateMk : Lean.PrettyPrinter.Delaborator.Delab := do
-  let e ← Lean.PrettyPrinter.Delaborator.getExpr
+  let e ← Lean.PrettyPrinter.Delaborator.SubExpr.getExpr
   delabGameState e
 
 -- We register the same elaborator for applications of the game_state_from_cells function.
 @[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab :=
-  do let e ← Lean.PrettyPrinter.Delaborator.getExpr
+  do let e ← Lean.PrettyPrinter.Delaborator.SubExpr.getExpr
      let e' ← (Lean.Meta.whnf e)
      delabGameState e'
 

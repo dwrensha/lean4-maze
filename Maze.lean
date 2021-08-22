@@ -283,11 +283,11 @@ elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
 
 elab "fail" m:term  : tactic => throwError m
 
--- the `rfl`s are to discharge the `hclear` and `hinbounds` side-goals
-macro "west" : tactic => `((apply step_west; rfl)        ⟨|⟩ fail "cannot step west")
-macro "east" : tactic => `((apply step_east; rfl; rfl)   ⟨|⟩ fail "cannot step east")
-macro "north" : tactic => `((apply step_north; rfl)      ⟨|⟩ fail "cannot step north")
-macro "south" : tactic => `((apply step_south; rfl; rfl) ⟨|⟩ fail "cannot step south")
+-- the `simp`s are to discharge the `hclear` and `hinbounds` side-goals
+macro "west" : tactic => `((apply step_west; simp)    ⟨|⟩ fail "cannot step west")
+macro "east" : tactic => `((apply step_east; simp; simp)    ⟨|⟩ fail "cannot step east")
+macro "north" : tactic => `((apply step_north; simp)  ⟨|⟩ fail "cannot step north")
+macro "south" : tactic => `((apply step_south; simp; simp)  ⟨|⟩ fail "cannot step south")
 
 macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
                            apply escape_east ⟨|⟩ apply escape_west ⟨|⟩

@@ -1,9 +1,5 @@
 import Lean
 
--- Turn off pp.analyze. When pp.analyze is set to true (the default), some of our
--- larger mazes take a long time to display.
-set_option pp.analyze false
-
 -- Coordinates in a two dimensional grid. ⟨0,0⟩ is the upper left.
 structure Coords where
   x : Nat -- column number

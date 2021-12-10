@@ -4,7 +4,7 @@ import Lean
 structure Coords where
   x : Nat -- column number
   y : Nat -- row number
-deriving BEq
+deriving BEq, DecidableEq
 
 instance : ToString Coords where
   toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
@@ -179,6 +179,8 @@ inductive Move where
   | north : Move
   | south : Move
 
+def Move.all : List Move := [east, west, north, south]
+
 @[simp]
 def make_move : GameState → Move → GameState
 | ⟨s, ⟨x,y⟩, w⟩, Move.east =>
@@ -199,7 +201,13 @@ def make_move : GameState → Move → GameState
              else ⟨s, ⟨x,y⟩, w⟩
 
 def is_win : GameState → Prop
-| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, _⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
+
+instance : DecidablePred is_win
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, _⟩ =>
+  if h : x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy 
+  then isTrue (by simp [is_win, h]) 
+  else isFalse (by simp [is_win, h])
 
 def can_escape (state : GameState) : Prop :=
   ∃ (gs : List Move), is_win (List.foldl make_move state gs)
@@ -272,6 +280,20 @@ def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx
 def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
+partial def escape_path (g : GameState) : Option (List Move) :=
+  let ⟨success, moves, _⟩ := dfs g [] []
+  if success then moves else none
+where 
+  dfs (g : GameState) (moves : List Move) (visited : List Coords) : (Bool × List Move × List Coords) := do
+    if is_win g then (true, moves, []) else
+      let mut visited := visited
+      for move in Move.all do
+        let g' := make_move g move
+        if g'.position ≠ g.position ∧ visited.notElem g'.position then 
+          let ⟨s, m, v⟩ := dfs g' (moves ++ [move]) (g.position :: visited) 
+          if s then return ⟨s, m, v⟩ else visited := (visited ++ v)
+      return (false, [], g.position :: visited)
+
 -- Define an "or" tactic combinator, like <|> in Lean 3.
 elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
    try Lean.Elab.Tactic.evalTactic t1
@@ -288,6 +310,27 @@ macro "south" : tactic => `((apply step_south; simp; simp)  ⟨|⟩ fail "cannot
 macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
                            apply escape_east ⟨|⟩ apply escape_west ⟨|⟩
                            fail "not currently at maze boundary")
+
+syntax (name := escape) "escape" : tactic
+
+open Lean Elab.Tactic in
+@[tactic escape] partial def evalEscape : Tactic
+  | `(tactic|escape) => do
+    match (← getMainTarget) with
+    | Expr.app (Expr.const `can_escape ..) m _ => 
+      let g ← extractGameState m
+      match escape_path g with
+      | none => throwError "Maze is not escapable."
+      | some p => 
+        for move in p do
+          match move with
+          | Move.east =>  evalTactic (← `(tactic|east;))
+          | Move.west =>  evalTactic (← `(tactic|west;)) 
+          | Move.north => evalTactic (← `(tactic|north;)) 
+          | Move.south => evalTactic (← `(tactic|south;)) 
+        evalTactic (← `(tactic|out;)) 
+    | _ => throwError "The 'escape' tactic cannot solve goals of this type."
+  | _ => throwError "Ill-formed 'escape' tactic."
 
 -- Can escape the trivial maze in any direction.
 example : can_escape ┌─┐
@@ -389,9 +432,14 @@ def maze3 := ┌─────────────────────�
              │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
              └────────────────────────────┘
 
+set_option maxHeartbeats 200000
+
 example : can_escape maze3 :=
  by west
     west
     west
     south
-    admit -- can you finish the proof?
+    admit 
+    -- Can you finish the proof?
+    -- If not try the 'escape' tactic (you might need to 'set_option maxHeartbeats 200000').
+

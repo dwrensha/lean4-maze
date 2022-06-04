@@ -43,7 +43,7 @@ inductive CellContents where
   | player : CellContents
 
 def update_state_with_row_aux : Nat → Nat → List CellContents → GameState → GameState
-| currentRowNum, currentColNum, [], oldState => oldState
+|             _,             _, [], oldState => oldState
 | currentRowNum, currentColNum, cell::contents, oldState =>
     let oldState' := update_state_with_row_aux currentRowNum (currentColNum+1) contents oldState
     match cell with
@@ -98,7 +98,6 @@ def extractXY : Lean.Expr → Lean.MetaM Coords
 | e => do
   let e':Lean.Expr ← (Lean.Meta.whnf e)
   let sizeArgs := Lean.Expr.getAppArgs e'
-  let f := Lean.Expr.getAppFn e'
   let x ← Lean.Meta.whnf sizeArgs[0]
   let y ← Lean.Meta.whnf sizeArgs[1]
   let numCols := (Lean.Expr.natLit? x).get!
@@ -130,7 +129,7 @@ def update2dArray {α : Type} : Array (Array α) → Coords → α → Array (Ar
    Array.set! a y $ Array.set! (Array.get! a y) x v
 
 def update2dArrayMulti {α : Type} : Array (Array α) → List Coords → α → Array (Array α)
-| a, [], v => a
+| a,    [], _ => a
 | a, c::cs, v =>
      let a' := update2dArrayMulti a cs v
      update2dArray a' c v
@@ -143,13 +142,10 @@ def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
   do guard $ e.getAppNumArgs == 3
      let ⟨⟨numCols, numRows⟩, playerCoords, walls⟩ ←
        try extractGameState e
-       catch err => failure -- can happen if game state has variables in it
+       catch _ => failure -- can happen if game state has variables in it
 
      let topBar := Array.mkArray numCols $ ← `(horizontal_border| ─)
      let emptyCell ← `(game_cell| ░)
-     let emptyRow := Array.mkArray numCols emptyCell
-     let emptyRowStx ← `(game_row| │$emptyRow:game_cell*│)
-     let allRows := Array.mkArray numRows emptyRowStx
 
      let a0 := Array.mkArray numRows $ Array.mkArray numCols emptyCell
      let a1 := update2dArray a0 playerCoords $ ← `(game_cell| @)
@@ -199,7 +195,7 @@ def make_move : GameState → Move → GameState
              else ⟨s, ⟨x,y⟩, w⟩
 
 def is_win : GameState → Prop
-| ⟨⟨sx, sy⟩, ⟨x,y⟩, w⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
+| ⟨⟨sx, sy⟩, ⟨x,y⟩, _⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
 
 def can_escape (state : GameState) : Prop :=
   ∃ (gs : List Move), is_win (List.foldl make_move state gs)
@@ -275,7 +271,7 @@ def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,�
 -- Define an "or" tactic combinator, like <|> in Lean 3.
 elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
    try Lean.Elab.Tactic.evalTactic t1
-   catch err => Lean.Elab.Tactic.evalTactic t2
+   catch _ => Lean.Elab.Tactic.evalTactic t2
 
 elab "fail" m:term  : tactic => throwError m
 

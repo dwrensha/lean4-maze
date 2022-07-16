@@ -268,21 +268,16 @@ def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx
 def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
--- Define an "or" tactic combinator, like <|> in Lean 3.
-elab t1:tactic " ⟨|⟩ " t2:tactic : tactic =>
-   try Lean.Elab.Tactic.evalTactic t1
-   catch _ => Lean.Elab.Tactic.evalTactic t2
-
 elab "fail" m:term  : tactic => throwError m
 
 -- the `simp`s are to discharge the `hclear` and `hinbounds` side-goals
-macro "west" : tactic => `((apply step_west; simp)    ⟨|⟩ fail "cannot step west")
-macro "east" : tactic => `((apply step_east; simp; simp)    ⟨|⟩ fail "cannot step east")
-macro "north" : tactic => `((apply step_north; simp)  ⟨|⟩ fail "cannot step north")
-macro "south" : tactic => `((apply step_south; simp; simp)  ⟨|⟩ fail "cannot step south")
+macro "west" : tactic => `(first | apply step_west; simp | fail "cannot step west")
+macro "east" : tactic => `(first | apply step_east; simp; simp | fail "cannot step east")
+macro "north" : tactic => `(first | apply step_north; simp | fail "cannot step north")
+macro "south" : tactic => `(first | apply step_south; simp; simp | fail "cannot step south")
 
-macro "out" : tactic => `(apply escape_north ⟨|⟩ apply escape_south ⟨|⟩
-                           apply escape_east ⟨|⟩ apply escape_west ⟨|⟩
+macro "out" : tactic => `(first | apply escape_north | apply escape_south |
+                           apply escape_east | apply escape_west |
                            fail "not currently at maze boundary")
 
 -- Can escape the trivial maze in any direction.

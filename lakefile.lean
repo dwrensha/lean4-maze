@@ -4,5 +4,5 @@ open Lake DSL
 
 package maze
 
-@[defaultTarget]
+@[default_target]
 lean_lib Maze

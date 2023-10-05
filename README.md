@@ -4,7 +4,7 @@ This repo shows how maze solving
 can be encoded as theorem proving
 using the Lean 4 programming language.
 
-It draws inspration from https://github.com/kbuzzard/maze-game.
+It draws inspiration from https://github.com/kbuzzard/maze-game.
 
 
 ## How To Play

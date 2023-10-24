@@ -387,4 +387,4 @@ example : can_escape maze3 :=
     west
     west
     south
-    admit -- can you finish the proof?
+    sorry -- can you finish the proof?

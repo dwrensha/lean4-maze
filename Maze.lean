@@ -6,9 +6,6 @@ structure Coords where
   y : Nat -- row number
 deriving BEq
 
-instance : ToString Coords where
-  toString := (λ ⟨x,y⟩ => String.join ["Coords.mk ", toString x, ", ", toString y])
-
 structure GameState where
   size     : Coords      -- coordinates of bottom-right cell
   position : Coords      -- row and column of the player

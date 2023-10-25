@@ -270,10 +270,14 @@ elab "fail" m:term : tactic => throwError m
 -- `first | t | u` is the Lean 4 equivalent of `t <|> u` in Lean 3.
 
 -- the `simp`s are to discharge the `hclear` and `hinbounds` side-goals
-macro "west" : tactic => `(tactic| first | apply step_west; simp | fail "cannot step west")
-macro "east" : tactic => `(tactic| first | apply step_east; simp; simp | fail "cannot step east")
-macro "north" : tactic => `(tactic| first | apply step_north; simp | fail "cannot step north")
-macro "south" : tactic => `(tactic| first | apply step_south; simp; simp | fail "cannot step south")
+macro "west" : tactic =>
+  `(tactic| first | apply step_west; (· simp; done) | fail "cannot step west")
+macro "east" : tactic =>
+  `(tactic| first | apply step_east; (· simp; done); (· simp; done) | fail "cannot step east")
+macro "north" : tactic =>
+  `(tactic| first | apply step_north; (· simp; done) | fail "cannot step north")
+macro "south" : tactic =>
+  `(tactic| first | apply step_south; (· simp; done); (· simp; done) | fail "cannot step south")
 
 macro "out" : tactic => `(tactic| first | apply escape_north | apply escape_south |
                            apply escape_east | apply escape_west |

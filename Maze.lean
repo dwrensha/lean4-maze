@@ -265,7 +265,7 @@ def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx
 def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
-elab "fail" m:term  : tactic => throwError m
+elab "fail" m:term : tactic => throwError m
 
 -- `first | t | u` is the Lean 4 equivalent of `t <|> u` in Lean 3.
 

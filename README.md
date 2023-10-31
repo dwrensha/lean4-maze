@@ -11,7 +11,7 @@ It draws inspiration from https://github.com/kbuzzard/maze-game.
 
 ### On The Web
 
-[Try it in your browswer on the Lean 4 Playground.](https://live.lean-lang.org/#url=https%3A%2F%2Fraw.githubusercontent.com%2Fdwrensha%2Flean4-maze%2Fmain%2FMaze.lean)
+[Try it in your browser on the Lean 4 Playground.](https://live.lean-lang.org/#url=https%3A%2F%2Fraw.githubusercontent.com%2Fdwrensha%2Flean4-maze%2Fmain%2FMaze.lean)
 
 ### Locally
 

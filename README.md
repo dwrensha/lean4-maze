@@ -7,7 +7,7 @@ using the Lean 4 programming language.
 It draws inspiration from https://github.com/kbuzzard/maze-game.
 
 
-## How To Play
+## Setup
 
 ### On The Web
 
@@ -18,6 +18,8 @@ It draws inspiration from https://github.com/kbuzzard/maze-game.
 First, install Lean 4 on your computer: https://leanprover.github.io/lean4/doc/setup.html
 
 Then open `Maze.lean` in emacs or VSCode.
+
+## Playing
 
 You can define a maze like this:
 

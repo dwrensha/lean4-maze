@@ -9,6 +9,12 @@ It draws inspiration from https://github.com/kbuzzard/maze-game.
 
 ## How To Play
 
+### On The Web
+
+[Try it in your browswer on the Lean 4 Playground.](https://live.lean-lang.org/#url=https%3A%2F%2Fraw.githubusercontent.com%2Fdwrensha%2Flean4-maze%2Fmain%2FMaze.lean)
+
+### Locally
+
 First, install Lean 4 on your computer: https://leanprover.github.io/lean4/doc/setup.html
 
 Then open `Maze.lean` in emacs or VSCode.

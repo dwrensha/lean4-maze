@@ -271,13 +271,13 @@ elab "fail" m:term : tactic => throwError m
 
 -- the `simp`s are to discharge the `hclear` and `hinbounds` side-goals
 macro "west" : tactic =>
-  `(tactic| first | apply step_west; (· simp; done) | fail "cannot step west")
+  `(tactic| first | apply step_west; (· decide; done) | fail "cannot step west")
 macro "east" : tactic =>
-  `(tactic| first | apply step_east; (· simp; done); (· simp; done) | fail "cannot step east")
+  `(tactic| first | apply step_east; (· decide; done); (· decide; done) | fail "cannot step east")
 macro "north" : tactic =>
-  `(tactic| first | apply step_north; (· simp; done) | fail "cannot step north")
+  `(tactic| first | apply step_north; (· decide; done) | fail "cannot step north")
 macro "south" : tactic =>
-  `(tactic| first | apply step_south; (· simp; done); (· simp; done) | fail "cannot step south")
+  `(tactic| first | apply step_south; (· decide; done); (· decide; done) | fail "cannot step south")
 
 macro "out" : tactic => `(tactic| first | apply escape_north | apply escape_south |
                            apply escape_east | apply escape_west |

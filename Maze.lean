@@ -269,7 +269,7 @@ elab "fail" m:term : tactic => throwError m
 
 -- `first | t | u` is the Lean 4 equivalent of `t <|> u` in Lean 3.
 
--- the `simp`s are to discharge the `hclear` and `hinbounds` side-goals
+-- the `decides`s are to discharge the `hclear` and `hinbounds` side-goals
 macro "west" : tactic =>
   `(tactic| first | apply step_west; (· decide; done) | fail "cannot step west")
 macro "east" : tactic =>

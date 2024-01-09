@@ -1,3 +1,4 @@
+import Aesop
 import Lean
 
 -- Coordinates in a two dimensional grid. ⟨0,0⟩ is the upper left.
@@ -39,6 +40,10 @@ inductive CellContents where
   | wall   : CellContents
   | player : CellContents
 
+-- `@[aesop_norm]` tells aesop to reduce these definitions in its normalization step.
+-- `@[simp]` would have a similar effect.
+
+@[aesop norm]
 def update_state_with_row_aux : Nat → Nat → List CellContents → GameState → GameState
 |             _,             _, [], oldState => oldState
 | currentRowNum, currentColNum, cell::contents, oldState =>
@@ -50,10 +55,12 @@ def update_state_with_row_aux : Nat → Nat → List CellContents → GameState 
     | CellContents.player => {oldState' .. with
                               position := ⟨currentColNum,currentRowNum⟩}
 
+@[aesop norm]
 def update_state_with_row : Nat → List CellContents → GameState → GameState
 | currentRowNum, rowContents, oldState => update_state_with_row_aux currentRowNum 0 rowContents oldState
 
 -- size, current row, remaining cells -> gamestate
+@[aesop norm]
 def game_state_from_cells_aux : Coords → Nat → List (List CellContents) → GameState
 | size, _, [] => ⟨size, ⟨0,0⟩, []⟩
 | size, currentRow, row::rows =>
@@ -61,6 +68,7 @@ def game_state_from_cells_aux : Coords → Nat → List (List CellContents) → 
         update_state_with_row currentRow row prevState
 
 -- size, remaining cells -> gamestate
+@[aesop norm]
 def game_state_from_cells : Coords → List (List CellContents) → GameState
 | size, cells => game_state_from_cells_aux size 0 cells
 
@@ -201,6 +209,10 @@ theorem can_still_escape (g : GameState) (m : Move) (hg : can_escape (make_move 
  have ⟨pms, hpms⟩ := hg
  Exists.intro (m::pms) hpms
 
+-- @[aesop unsafe] tells aesop to try these theorems, but that doing so might
+-- be a step in the wrong direction.
+
+@[aesop unsafe]
 theorem step_west
   {s: Coords}
   {x y : Nat}
@@ -214,6 +226,7 @@ theorem step_west
       rw [hmm] at W
       exact can_still_escape ⟨s,⟨x+1,y⟩,w⟩ Move.west W
 
+@[aesop unsafe]
 theorem step_east
   {s: Coords}
   {x y : Nat}
@@ -227,6 +240,7 @@ theorem step_east
        rw [hmm] at E
        exact can_still_escape ⟨s, ⟨x,y⟩, w⟩ Move.east E
 
+@[aesop unsafe]
 theorem step_north
   {s: Coords}
   {x y : Nat}
@@ -240,6 +254,7 @@ theorem step_north
        rw [hmm] at N
        exact can_still_escape ⟨s,⟨x,y+1⟩,w⟩ Move.north N
 
+@[aesop unsafe]
 theorem step_south
   {s: Coords}
   {x y : Nat}
@@ -253,21 +268,27 @@ theorem step_south
        rw [hmm] at S
        exact can_still_escape ⟨s,⟨x,y⟩,w⟩ Move.south S
 
+-- These `escape` definitions are "safe" for aesop because if we can apply them then we are done.
+
+@[aesop safe]
 def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
     ⟨[], Or.inl rfl⟩
 
+@[aesop safe]
 def escape_east {sy x y : Nat} {w : List Coords} : can_escape ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inl rfl⟩
 
+@[aesop safe]
 def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inl rfl⟩
 
+@[aesop safe]
 def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
   ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
 
 elab "fail" m:term : tactic => throwError m
 
--- `first | t | u` is the Lean 4 equivalent of `t <|> u` in Lean 3.
+-- below are the tactics that we would use to solve mazes by hand
 
 -- the `decides`s are to discharge the `hclear` and `hinbounds` side-goals
 macro "west" : tactic =>
@@ -286,7 +307,8 @@ macro "out" : tactic => `(tactic| first | apply escape_north | apply escape_sout
 -- Can escape the trivial maze in any direction.
 example : can_escape ┌─┐
                      │@│
-                     └─┘ := by out
+                     └─┘ := by
+        aesop
 
 
 -- some other mazes with immediate escapes
@@ -294,22 +316,22 @@ example : can_escape ┌──┐
                      │░░│
                      │@░│
                      │░░│
-                     └──┘ := by out
+                     └──┘ := by aesop
 example : can_escape ┌──┐
                      │░░│
                      │░@│
                      │░░│
-                     └──┘ := by out
+                     └──┘ := by aesop
 example : can_escape ┌───┐
                      │░@░│
                      │░░░│
                      │░░░│
-                     └───┘ := by out
+                     └───┘ := by aesop
 example : can_escape ┌───┐
                      │░░░│
-                     │░░░│
                      │░@░│
-                     └───┘ := by out
+                     │░░░│
+                     └───┘ := by aesop
 
 
 -- Now for some more interesting mazes.
@@ -323,49 +345,30 @@ def maze1 := ┌──────┐
              └──────┘
 
 example : can_escape maze1 := by
-  west
-  west
-  east
-  south
-  south
-  east
-  east
-  south
-  out
+  aesop (add norm maze1)
+        (options := {maxRuleApplications := 1000})
+        (simp_options := {decide := true}) -- decide = true is necessary for side goals
 
 def maze2 := ┌────────┐
              │▓▓▓▓▓▓▓▓│
-             │▓░▓@▓░▓▓│
+             │▓░▓░▓░▓▓│
              │▓░▓░░░▓▓│
              │▓░░▓░▓▓▓│
              │▓▓░▓░▓░░│
              │▓░░░░▓░▓│
              │▓░▓▓▓▓░▓│
-             │▓░░░░░░▓│
+             │▓░░░@░░▓│
              │▓▓▓▓▓▓▓▓│
              └────────┘
 
+set_option maxRecDepth 2000 in
 example : can_escape maze2 :=
- by south
-    east
-    south
-    south
-    south
-    west
-    west
-    west
-    south
-    south
-    east
-    east
-    east
-    east
-    east
-    north
-    north
-    north
-    east
-    out
+ by aesop (add norm maze2)
+          (options := {maxRuleApplications := 10000})
+          (simp_options := {decide := true})
+
+-- This next maze seems to be way too big for aesop to succeed.
+-- Please let me know if you find a way to get aesop to handle this!
 
 def maze3 := ┌────────────────────────────┐
              │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
@@ -388,4 +391,4 @@ example : can_escape maze3 :=
     west
     west
     south
-    sorry -- can you finish the proof?
+    sorry

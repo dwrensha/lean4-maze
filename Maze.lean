@@ -93,7 +93,7 @@ macro_rules
 
 def extractXY : Lean.Expr → Lean.MetaM Coords
 | e => do
-  let e':Lean.Expr ← (Lean.Meta.whnf e)
+  let e':Lean.Expr ← Lean.Meta.whnf e
   let sizeArgs := Lean.Expr.getAppArgs e'
   let x ← Lean.Meta.whnf sizeArgs[0]!
   let y ← Lean.Meta.whnf sizeArgs[1]!
@@ -103,7 +103,7 @@ def extractXY : Lean.Expr → Lean.MetaM Coords
 
 partial def extractWallList : Lean.Expr → Lean.MetaM (List Coords)
 | exp => do
-  let exp':Lean.Expr ← (Lean.Meta.whnf exp)
+  let exp':Lean.Expr ← Lean.Meta.whnf exp
   let f := Lean.Expr.getAppFn exp'
   if f.constName!.toString == "List.cons"
   then let consArgs := Lean.Expr.getAppArgs exp'
@@ -114,7 +114,7 @@ partial def extractWallList : Lean.Expr → Lean.MetaM (List Coords)
 
 partial def extractGameState : Lean.Expr → Lean.MetaM GameState
 | exp => do
-    let exp': Lean.Expr ← (Lean.Meta.whnf exp)
+    let exp': Lean.Expr ← Lean.Meta.whnf exp
     let gameStateArgs := Lean.Expr.getAppArgs exp'
     let size ← extractXY gameStateArgs[0]!
     let playerCoords ← extractXY gameStateArgs[1]!

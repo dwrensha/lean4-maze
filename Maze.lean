@@ -191,28 +191,25 @@ def make_move : GameState → Move → GameState
              then ⟨s, ⟨x, y+1⟩, w⟩
              else ⟨s, ⟨x,y⟩, w⟩
 
-def is_win : GameState → Prop
+def IsWin : GameState → Prop
 | ⟨⟨sx, sy⟩, ⟨x,y⟩, _⟩ => x = 0 ∨ y = 0 ∨ x + 1 = sx ∨ y + 1 = sy
 
-def can_escape (state : GameState) : Prop :=
-  ∃ (gs : List Move), is_win (List.foldl make_move state gs)
-
-theorem can_still_escape (g : GameState) (m : Move) (hg : can_escape (make_move g m)) : can_escape g :=
- have ⟨pms, hpms⟩ := hg
- Exists.intro (m::pms) hpms
+inductive Escapable : GameState → Prop where
+| Done (s : GameState) : IsWin s → Escapable s
+| Step (s : GameState) (m : Move) : Escapable (make_move s m) → Escapable s
 
 theorem step_west
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
   (hclear' : w.notElem ⟨x,y⟩)
-  (W : can_escape ⟨s,⟨x,y⟩,w⟩) :
-  can_escape ⟨s,⟨x+1,y⟩,w⟩ :=
+  (W : Escapable ⟨s,⟨x,y⟩,w⟩) :
+  Escapable ⟨s,⟨x+1,y⟩,w⟩ :=
    by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x+1, y⟩,w⟩ Move.west :=
                by have h' : x + 1 - 1 = x := rfl
                   simp [h', hclear']
       rw [hmm] at W
-      exact can_still_escape ⟨s,⟨x+1,y⟩,w⟩ Move.west W
+      exact .Step ⟨s,⟨x+1,y⟩,w⟩ Move.west W
 
 theorem step_east
   {s: Coords}
@@ -220,25 +217,25 @@ theorem step_east
   {w: List Coords}
   (hclear' : w.notElem ⟨x+1,y⟩)
   (hinbounds : x + 1 ≤ s.x)
-  (E : can_escape ⟨s,⟨x+1,y⟩,w⟩) :
-  can_escape ⟨s,⟨x, y⟩,w⟩ :=
+  (E : Escapable ⟨s,⟨x+1,y⟩,w⟩) :
+  Escapable ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x+1,y⟩ w = make_move ⟨s, ⟨x,y⟩,w⟩ Move.east :=
          by simp [hclear', hinbounds]
        rw [hmm] at E
-       exact can_still_escape ⟨s, ⟨x,y⟩, w⟩ Move.east E
+       exact .Step ⟨s, ⟨x,y⟩, w⟩ Move.east E
 
 theorem step_north
   {s: Coords}
   {x y : Nat}
   {w: List Coords}
   (hclear' : w.notElem ⟨x,y⟩)
-  (N : can_escape ⟨s,⟨x,y⟩,w⟩) :
-  can_escape ⟨s,⟨x, y+1⟩,w⟩ :=
+  (N : Escapable ⟨s,⟨x,y⟩,w⟩) :
+  Escapable ⟨s,⟨x, y+1⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y⟩ w = make_move ⟨s,⟨x, y+1⟩,w⟩ Move.north :=
          by have h' : y + 1 - 1 = y := rfl
             simp [h', hclear']
        rw [hmm] at N
-       exact can_still_escape ⟨s,⟨x,y+1⟩,w⟩ Move.north N
+       exact .Step ⟨s,⟨x,y+1⟩,w⟩ Move.north N
 
 theorem step_south
   {s: Coords}
@@ -246,24 +243,24 @@ theorem step_south
   {w: List Coords}
   (hclear' : w.notElem ⟨x,y+1⟩)
   (hinbounds : y + 1 ≤ s.y)
-  (S : can_escape ⟨s,⟨x,y+1⟩,w⟩) :
-  can_escape ⟨s,⟨x, y⟩,w⟩ :=
+  (S : Escapable ⟨s,⟨x,y+1⟩,w⟩) :
+  Escapable ⟨s,⟨x, y⟩,w⟩ :=
     by have hmm : GameState.mk s ⟨x,y+1⟩ w = make_move ⟨s,⟨x, y⟩,w⟩ Move.south :=
             by simp [hclear', hinbounds]
        rw [hmm] at S
-       exact can_still_escape ⟨s,⟨x,y⟩,w⟩ Move.south S
+       exact .Step ⟨s,⟨x,y⟩,w⟩ Move.south S
 
-def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
-    ⟨[], Or.inl rfl⟩
+def escape_west {sx sy : Nat} {y : Nat} {w : List Coords} : Escapable ⟨⟨sx, sy⟩,⟨0, y⟩,w⟩ :=
+    .Done _ (Or.inl rfl)
 
-def escape_east {sy x y : Nat} {w : List Coords} : can_escape ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
-  ⟨[], Or.inr $ Or.inr $ Or.inl rfl⟩
+def escape_east {sy x y : Nat} {w : List Coords} : Escapable ⟨⟨x+1, sy⟩,⟨x, y⟩,w⟩ :=
+  .Done _ (Or.inr <| Or.inr <| Or.inl rfl)
 
-def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : can_escape ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
-  ⟨[], Or.inr $ Or.inl rfl⟩
+def escape_north {sx sy : Nat} {x : Nat} {w : List Coords} : Escapable ⟨⟨sx, sy⟩,⟨x, 0⟩,w⟩ :=
+  .Done _ (Or.inr <| Or.inl rfl)
 
-def escape_south {sx x y : Nat} {w: List Coords} : can_escape ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
-  ⟨[], Or.inr $ Or.inr $ Or.inr rfl⟩
+def escape_south {sx x y : Nat} {w: List Coords} : Escapable ⟨⟨sx, y+1⟩,⟨x, y⟩,w⟩ :=
+  .Done _ (Or.inr <| Or.inr <| Or.inr rfl)
 
 elab "fail" m:term : tactic => throwError m
 
@@ -284,32 +281,32 @@ macro "out" : tactic => `(tactic| first | apply escape_north | apply escape_sout
                            fail "not currently at maze boundary")
 
 -- Can escape the trivial maze in any direction.
-example : can_escape ┌─┐
-                     │@│
-                     └─┘ := by out
+example : Escapable ┌─┐
+                    │@│
+                    └─┘ := by out
 
 
 -- some other mazes with immediate escapes
-example : can_escape ┌──┐
-                     │░░│
-                     │@░│
-                     │░░│
-                     └──┘ := by out
-example : can_escape ┌──┐
-                     │░░│
-                     │░@│
-                     │░░│
-                     └──┘ := by out
-example : can_escape ┌───┐
-                     │░@░│
-                     │░░░│
-                     │░░░│
-                     └───┘ := by out
-example : can_escape ┌───┐
-                     │░░░│
-                     │░░░│
-                     │░@░│
-                     └───┘ := by out
+example : Escapable ┌──┐
+                    │░░│
+                    │@░│
+                    │░░│
+                    └──┘ := by out
+example : Escapable ┌──┐
+                    │░░│
+                    │░@│
+                    │░░│
+                    └──┘ := by out
+example : Escapable ┌───┐
+                    │░@░│
+                    │░░░│
+                    │░░░│
+                    └───┘ := by out
+example : Escapable ┌───┐
+                    │░░░│
+                    │░░░│
+                    │░@░│
+                    └───┘ := by out
 
 
 -- Now for some more interesting mazes.
@@ -322,7 +319,7 @@ def maze1 := ┌──────┐
              │▓▓▓▓░▓│
              └──────┘
 
-example : can_escape maze1 := by
+example : Escapable maze1 := by
   west
   west
   east
@@ -345,7 +342,7 @@ def maze2 := ┌────────┐
              │▓▓▓▓▓▓▓▓│
              └────────┘
 
-example : can_escape maze2 :=
+example : Escapable maze2 :=
  by south
     east
     south
@@ -383,7 +380,7 @@ def maze3 := ┌─────────────────────�
              │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
              └────────────────────────────┘
 
-example : can_escape maze3 :=
+example : Escapable maze3 :=
  by west
     west
     west

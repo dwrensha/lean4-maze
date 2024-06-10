@@ -47,7 +47,7 @@ You can interactively solve a maze like this:
 
 
 ```lean
-example : can_escape maze :=
+example : Escapable maze :=
  by south
     east
     south
@@ -58,7 +58,7 @@ As you make progress, Lean's goal view will display your current state.
 For example, after the moves made above, the state is shown as:
 
 ```lean
-⊢ can_escape
+⊢ Escapable
     (
         ┌────────┐
         │▓▓▓▓▓▓▓▓│
@@ -81,11 +81,12 @@ When you reach the boundary, you can finish your proof with `out`.
 ## how does it work?
 
 As you traverse a maze, you are constructing a proof
-that the maze satisfies the `can_escape` predicate, defined as
+that the maze satisfies an `Escapable` predicate, defined as
 
 ```lean
-def can_escape (state : GameState) : Prop :=
-  ∃ (gs : List Move), is_win (List.foldl make_move state gs)
+inductive Escapable : GameState → Prop where
+| Done (s : GameState) : IsWin s → Escapable s
+| Step (s : GameState) (m : Move) : Escapable (make_move s m) → Escapable s
 ```
 
 The mazes as drawn above are actual valid Lean 4 syntax!

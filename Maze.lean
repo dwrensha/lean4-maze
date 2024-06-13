@@ -161,7 +161,7 @@ def delabGameState : Lean.Expr → Lean.PrettyPrinter.Delaborator.Delab
 -- We register the same elaborator for applications of the game_state_from_cells function.
 @[delab app.game_state_from_cells] def delabGameState' : Lean.PrettyPrinter.Delaborator.Delab :=
   do let e ← Lean.PrettyPrinter.Delaborator.SubExpr.getExpr
-     let e' ← (Lean.Meta.whnf e)
+     let e' ← Lean.Meta.whnf e
      delabGameState e'
 
 --------------------------
